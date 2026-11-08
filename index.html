@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerencial Familiar</title>
+<meta name="theme-color" content="#2f6f5e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>html,body{height:100%}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+<div id="login" class="wrap">
+  <div class="login-box">
+    <div class="brand"><div class="brand-mark">G</div><div><h1>Gerencial Familiar</h1><div class="muted small">Contas da casa lidas direto da sua pasta na nuvem</div></div></div>
+    <form class="login-card" id="f-login" autocomplete="on">
+      <h2 id="lg-title">Entrar</h2>
+      <label class="f" id="lg-nome-wrap" hidden>Nome da família<input id="lg-nome" type="text" placeholder="Ex.: Família Souza"></label>
+      <label class="f">E-mail<input id="lg-email" type="email" required autocomplete="username" ></label>
+      <label class="f">Senha<input id="lg-senha" type="password" required minlength="6" autocomplete="current-password" ></label>
+      <div class="err" id="lg-err"></div>
+      <button class="pri" type="submit" id="lg-btn">Entrar</button>
+      <button type="button" id="lg-alt">Criar acesso</button>
+      <button type="button" class="link" id="lg-esqueci">Esqueci minha senha</button>
+      <div class="ok" id="lg-ok"></div>
+    </form>
+    <div class="note" id="demo-nota" hidden>Modo demonstração: o servidor de login ainda não foi configurado. Entre com demo@gerencial.app / demo1234. O cadastro fica só neste navegador.</div>
+  </div>
+</div>
+
+<div id="bloqueio" class="wrap" hidden>
+  <div class="login-box" style="margin:60px auto">
+    <div class="login-card"><h2>Assinatura inativa</h2>
+      <p class="muted" style="margin:0">Seu acesso <b id="bl-email"></b> está sem assinatura ativa. Fale com o suporte para liberar ou renovar.</p>
+      <button id="bl-sair">Sair</button></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <div class="banner" id="demo-banner" hidden>Modo demonstração: login local, sem servidor.</div>
+  <header class="top"><div class="wrap">
+    <div class="top-row">
+      <div class="brand"><div class="brand-mark">G</div><div><h1 id="fam">Família</h1><div class="muted small" id="fonte-txt">Dados de exemplo</div></div></div>
+      <button id="sair">Sair</button>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-v="painel" class="on">Painel</button>
+      <button data-v="pasta">Pasta na nuvem</button>
+      <button data-v="relatorio">Relatório</button>
+    </nav>
+  </div></header>
+
+  <main class="wrap">
+    <!-- PAINEL -->
+    <section class="view on" id="v-painel">
+      <div class="row">
+        <label class="f">Mês<select id="mes"></select></label>
+        <label class="f">Buscar lançamento<input id="busca" type="search" placeholder="mercado, escola, Pix..."></label>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid2">
+        <div class="panel"><h3>Saídas por categoria</h3><div class="bars" id="cats"></div></div>
+        <div class="panel"><h3>Mês a mês</h3><div class="tbl"><table id="evol"></table></div></div>
+      </div>
+      <div class="panel"><div class="row"><h3>Lançamentos</h3><div class="auto muted small" id="tot-lanc"></div></div><div class="tbl"><table id="lanc"></table></div></div>
+    </section>
+
+    <!-- PASTA -->
+    <section class="view" id="v-pasta">
+      <div class="panel">
+        <h2>Onde ficam seus arquivos</h2>
+        <p class="muted small" style="margin:0">Crie uma subpasta por mês (por exemplo <span class="num">Novembro2026</span> ou <span class="num">2026-11</span>) e salve nela extratos e faturas em OFX ou CSV. O sistema lê cada mês e grava o relatório na mesma subpasta.</p>
+        <div class="cloud" id="cloud">
+          <label><input type="radio" name="nuvem" value="gdrive" checked>Google Drive</label>
+          <label><input type="radio" name="nuvem" value="onedrive">OneDrive</label>
+          <label><input type="radio" name="nuvem" value="dropbox">Dropbox</label>
+          <label><input type="radio" name="nuvem" value="local">Pasta no computador</label>
+        </div>
+        <label class="f">Link ou caminho da pasta<input id="pasta-link" type="text" placeholder="https://drive.google.com/drive/folders/... ou G:\Meu Drive\Finanças"></label>
+        <div class="row">
+          <button class="pri auto" id="escolher">Escolher a pasta sincronizada</button>
+          <button class="auto" id="reabrir" hidden>Reabrir a última pasta</button>
+          <button class="auto" id="exemplo">Voltar aos dados de exemplo</button>
+          <input id="pasta-input" type="file" webkitdirectory multiple hidden>
+        </div>
+        <div class="note" id="pasta-dica">No computador com o Google Drive (ou OneDrive/Dropbox) instalado, a pasta da nuvem aparece como uma pasta comum. Escolha-a acima e permita leitura e gravação. A leitura direta pelo link, sem o programa instalado, chega numa próxima versão.</div>
+      </div>
+      <div class="panel">
+        <div class="row"><h3>Arquivos encontrados</h3><div class="auto muted small" id="pasta-nome">Nenhuma pasta escolhida</div></div>
+        <ul class="files" id="arquivos"><li><span class="muted">Escolha uma pasta para listar os meses e arquivos.</span></li></ul>
+      </div>
+    </section>
+
+    <!-- RELATÓRIO -->
+    <section class="view" id="v-relatorio">
+      <div class="panel">
+        <div class="row">
+          <label class="f">Mês do relatório<select id="mes-rel"></select></label>
+          <label class="f">WhatsApp (com DDD, opcional)<input id="zap" type="tel" placeholder="11 99999-0000"></label>
+          <label class="f">E-mail para envio<input id="mail" type="email" placeholder="contador@exemplo.com"></label>
+        </div>
+        <div class="row">
+          <button class="pri auto" id="b-pdf">Salvar PDF na pasta</button>
+          <button class="pri auto" id="b-png">Salvar PNG na pasta</button>
+          <button class="auto" id="b-zap">Enviar por WhatsApp</button>
+          <button class="auto" id="b-mail">Enviar por e-mail</button>
+        </div>
+        <div class="muted small" id="rel-dest">Destino: sem pasta escolhida, o arquivo é baixado.</div>
+      </div>
+      <div class="rel-out"><div id="rel"></div></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+
+<script src="config.js"></script>
+<script src="vendor/supabase.min.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
