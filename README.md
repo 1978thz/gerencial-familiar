@@ -14,7 +14,7 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
 1. **Supabase** (supabase.com, plano gratuito): crie um projeto na região São Paulo.
    - SQL Editor > New query > cole `supabase/schema.sql` > Run.
    - Authentication > URL Configuration: em Site URL, coloque o endereço do app na Vercel.
-   - Project Settings > API: copie a Project URL e a chave `anon public` para `config.js`.
+   - Project Settings > API Keys: copie a Project URL e a chave publicável (`sb_publishable_...`) para `config.js`.
 2. **Vercel** (vercel.com, plano gratuito): Add New > Project > importe este repositório do GitHub > Deploy. Não precisa de build.
 3. **Domínio** (opcional, ~R$ 40/ano no registro.br): aponte para a Vercel em Settings > Domains.
 
