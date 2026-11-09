@@ -15,6 +15,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
+<script>
+// Volta do login da nuvem (Google/Microsoft/Dropbox): guarda a resposta e limpa o endereço
+// antes de qualquer outra biblioteca ler a URL. O login do próprio sistema não usa "gfnuvem-".
+(function () { try {
+  var q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.slice(1));
+  var st = q.get("state") || h.get("state");
+  if (st && st.indexOf("gfnuvem-") === 0) {
+    sessionStorage.setItem("gf_oauth_retorno", JSON.stringify({state: st, code: q.get("code"), access_token: h.get("access_token"),
+      expires_in: h.get("expires_in"), error: q.get("error") || h.get("error"), error_description: q.get("error_description") || h.get("error_description")}));
+    history.replaceState(null, "", location.pathname);
+  }
+} catch (e) {} })();
+</script>
 <style>html,body{height:100%}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
 </head>
 <body>
@@ -32,6 +45,7 @@
       <button type="button" class="link" id="lg-esqueci">Esqueci minha senha</button>
       <div class="ok" id="lg-ok"></div>
     </form>
+    <p class="muted small" style="text-align:center;margin:12px 0 0"><a href="privacidade.html">Política de Privacidade</a></p>
     <div class="note" id="demo-nota" hidden>Modo demonstração: o servidor de login ainda não foi configurado. Entre com demo@gerencial.app / demo1234. O cadastro fica só neste navegador.</div>
   </div>
 </div>
@@ -78,11 +92,16 @@
           <p id="inst-ios" hidden>No iPhone ou iPad, abra este endereço no <b>Safari</b>, toque em <b>Compartilhar</b> (o quadrado com a seta para cima) e depois em <b>Adicionar à Tela de Início</b>.</p>
           <p class="small">Instalado, o Gerencial abre em tela cheia pelo ícone, como um aplicativo, e você continua conectado.</p>
         </li>
-        <li data-p="importar">
-          <div class="p-head"><span class="p-ck"></span><h3>Importe os extratos do mês</h3></div>
-          <p>No app do banco, exporte o extrato do mês em <b>OFX</b> (ou CSV) e salve no Google Drive, OneDrive, Dropbox ou em Arquivos. Depois, na aba <b>Extratos</b>, toque em <b>Escolher arquivos do banco</b> e selecione um ou vários arquivos.</p>
-          <p class="small" id="dica-compartilhar">Mais rápido no Android: no app do banco ou no Drive, toque em <b>Compartilhar</b> no arquivo e escolha <b>Gerencial</b>.</p>
+        <li data-p="nuvemlig">
+          <div class="p-head"><span class="p-ck"></span><h3>Conecte a sua nuvem</h3></div>
+          <p>Na aba <b>Extratos</b>, toque em <b>Google Drive</b>, <b>OneDrive</b> ou <b>Dropbox</b>, entre com a sua conta e escolha a pasta principal dos extratos (a que tem as subpastas de mês, como <span class="num">2026-11</span>). A partir daí, o sistema lê a pasta sozinho toda vez que você abre.</p>
+          <p class="small">Não tem conta na nuvem? Os links para criar uma conta grátis estão na mesma tela.</p>
           <button class="pri" data-ir="pasta">Ir para Extratos</button>
+        </li>
+        <li data-p="importar">
+          <div class="p-head"><span class="p-ck"></span><h3>Salve os extratos do mês na pasta</h3></div>
+          <p>No app do banco, exporte o extrato do mês em <b>OFX</b> (ou CSV) e salve na subpasta do mês, na sua nuvem. Depois abra o sistema: os números aparecem no Painel.</p>
+          <p class="small" id="dica-compartilhar">Sem nuvem? Use <b>Ou importe arquivos avulsos</b> na aba Extratos. No Android, também dá para tocar em <b>Compartilhar</b> no arquivo e escolher <b>Gerencial</b>.</p>
         </li>
         <li data-p="conferir">
           <div class="p-head"><span class="p-ck"></span><h3>Confira o painel</h3></div>
@@ -123,6 +142,7 @@
         </li>
         <li data-p="pasta">
           <div class="p-head"><span class="p-ck"></span><h3>Escolha a pasta principal no sistema</h3></div>
+          <p class="small">Prefere sem programa instalado? Use <b>Conectar minha nuvem</b> na aba Extratos: funciona igual ao celular.</p>
           <p>Na aba <b>Extratos</b>, clique em <b>Escolher a pasta sincronizada</b>, selecione a pasta principal (não a do mês) e permita <b>ver e editar</b> os arquivos. A lista mostra cada mês e quantos lançamentos foram lidos de cada arquivo.</p>
           <p class="small">Nos próximos acessos, use <b>Reabrir a última pasta</b>: o navegador pede a permissão de novo, por segurança.</p>
           <button class="pri" data-ir="pasta">Ir para Extratos</button>
@@ -176,8 +196,14 @@
           <p>O formato não foi reconhecido. Prefira o OFX. Se for CSV, abra no Excel e confira se a primeira linha tem as colunas Data e Valor.</p></details>
         <details><summary>O relatório foi para Downloads e não para a pasta</summary>
           <p>O navegador não tem permissão de gravação. Use Chrome ou Edge no computador, clique em <b>Reabrir a última pasta</b> e permita <b>ver e editar</b>. Se escolheu "só leitura", escolha a pasta de novo.</p></details>
-        <details><summary>No celular ou tablet não aparece "Escolher a pasta"</summary>
-          <p>Os navegadores de celular e tablet não deixam sites abrirem uma pasta inteira. Use <b>Escolher arquivos do banco</b> na aba Extratos: dá para selecionar vários arquivos de uma vez, direto do Drive ou de Arquivos.</p></details>
+        <details><summary>No celular ou tablet não aparece "Escolher a pasta sincronizada"</summary>
+          <p>Ela é só para o computador. No celular e no tablet, use <b>Conectar minha nuvem</b> na aba Extratos: você entra na conta do Google Drive, OneDrive ou Dropbox e escolhe a pasta uma vez.</p></details>
+        <details><summary>Conectei a nuvem, mas aparece "Nenhum extrato"</summary>
+          <p>Toque em <b>Trocar pasta</b> e escolha a <b>pasta principal</b>, a que tem as subpastas de mês. Os arquivos precisam ser OFX ou CSV. Se a pasta só tem extratos soltos, sem subpastas, o mês é identificado pela data de cada lançamento.</p></details>
+        <details><summary>O Google Drive pede para entrar de novo</summary>
+          <p>Por segurança, o Google libera o acesso por cerca de 1 hora a cada vez. Ao abrir o sistema depois disso, toque em <b>Atualizar</b>: a confirmação é rápida e normalmente não pede senha. OneDrive e Dropbox renovam sozinhos.</p></details>
+        <details><summary>Quero tirar o acesso do sistema à minha nuvem</summary>
+          <p>Toque em <b>Desconectar</b> na aba Extratos. Para cortar de vez, remova o "Gerencial Familiar" nas permissões da sua conta: em myaccount.google.com, account.microsoft.com ou nas configurações do Dropbox, em Apps conectados.</p></details>
         <details><summary>No celular, um arquivo .ofx aparece apagado na hora de escolher</summary>
           <p>Toque em "Procurar" ou "Navegar" e abra o arquivo pela pasta do Drive ou de Arquivos. No Android, outra saída é usar <b>Compartilhar</b> no arquivo e escolher <b>Gerencial</b>.</p></details>
         <details><summary>Os dados sumiram do celular</summary>
@@ -203,8 +229,43 @@
 
     <!-- PASTA -->
     <section class="view" id="v-pasta">
+      <div class="panel" id="nv-panel">
+        <h2>Conectar minha nuvem</h2>
+        <div id="nv-escolha">
+          <p class="muted small" style="margin:0 0 10px">O sistema lê sozinho a sua pasta de extratos, no celular, no tablet ou no computador. Escolha onde ela está e entre com a sua conta. O acesso é <b>somente leitura</b>, e os extratos vão direto da nuvem para este aparelho.</p>
+          <div class="nv-provs">
+            <button class="nv-prov" data-prov="google"><b>Google Drive</b><small>Entrar e escolher a pasta</small></button>
+            <button class="nv-prov" data-prov="onedrive"><b>OneDrive</b><small>Entrar e escolher a pasta</small></button>
+            <button class="nv-prov" data-prov="dropbox"><b>Dropbox</b><small>Entrar e escolher a pasta</small></button>
+          </div>
+          <p class="small" style="margin:10px 0 0">Você não precisa estar logado no app da nuvem: a tela de login dela abre aqui. Ainda não tem conta? Crie grátis:
+            <a href="https://accounts.google.com/signup" target="_blank" rel="noopener">Google</a> ·
+            <a href="https://signup.live.com/" target="_blank" rel="noopener">Microsoft (OneDrive)</a> ·
+            <a href="https://www.dropbox.com/register" target="_blank" rel="noopener">Dropbox</a>.
+            Depois, salve os extratos numa pasta da nuvem, com uma subpasta por mês.</p>
+        </div>
+        <div id="nv-ligado" hidden>
+          <div class="nv-status">
+            <div><b id="nv-titulo">Nuvem conectada</b><div class="muted small" id="nv-conta"></div></div>
+            <div><span class="muted small">Pasta</span><div><b id="nv-pasta"></b></div><div class="muted small" id="nv-ultima"></div></div>
+          </div>
+          <div class="row">
+            <button class="pri auto" id="nv-sync">Atualizar agora</button>
+            <button class="auto" id="nv-trocar">Trocar pasta</button>
+            <button class="auto" id="nv-sair">Desconectar</button>
+          </div>
+          <p class="muted small" style="margin:0">A cada vez que você abre o sistema, a pasta é lida de novo. Basta salvar os extratos novos na nuvem.</p>
+        </div>
+      </div>
+      <dialog id="nv-dlg">
+        <div class="nv-dlg-topo"><h3>Escolha a pasta dos extratos</h3><button class="link" id="nv-fechar">Fechar</button></div>
+        <div class="small" id="nv-trilha"></div>
+        <div class="note small" id="nv-info"></div>
+        <ul id="nv-lista"></ul>
+        <button class="pri" id="nv-usar" disabled>Usar esta pasta</button>
+      </dialog>
       <div class="panel" id="imp-panel">
-        <h2>Importar extratos</h2>
+        <h2>Ou importe arquivos avulsos</h2>
         <p class="muted small" style="margin:0">Escolha os arquivos <b>OFX</b> ou <b>CSV</b> baixados do banco: do Google Drive, OneDrive, Dropbox ou da pasta Downloads. O mês é identificado pela data de cada lançamento. Importar o mesmo arquivo de novo atualiza, sem duplicar. Os dados ficam guardados só neste aparelho.</p>
         <div class="row">
           <button class="pri auto" id="importar">Escolher arquivos do banco</button>
@@ -223,7 +284,7 @@
           <label><input type="radio" name="nuvem" value="local">Pasta no computador</label>
         </div>
         <label class="f so-pc">Link ou caminho da pasta<input id="pasta-link" type="text" placeholder="https://drive.google.com/drive/folders/... ou G:\Meu Drive\Finanças"></label>
-        <div class="note" id="pasta-movel" hidden>Neste aparelho o navegador não consegue abrir uma pasta inteira. Use <b>Importar extratos</b> acima. A leitura automática da pasta e a gravação do relatório nela funcionam no computador, no Chrome ou no Edge.</div>
+        <div class="note" id="pasta-movel" hidden>Neste aparelho o navegador não abre pastas do computador. Use <b>Conectar minha nuvem</b>, no topo desta aba. A leitura automática da pasta e a gravação do relatório nela funcionam no computador, no Chrome ou no Edge.</div>
         <div class="row" id="pasta-acoes">
           <button class="pri auto" id="escolher">Escolher a pasta sincronizada</button>
           <button class="auto" id="reabrir" hidden>Reabrir a última pasta</button>
@@ -284,5 +345,6 @@
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
+<script src="nuvem.js"></script>
 </body>
 </html>

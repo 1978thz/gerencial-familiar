@@ -7,6 +7,7 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
 - **Login e assinatura** no Supabase: e-mail e senha, recuperação de senha por e-mail, 14 dias de teste a cada cadastro novo. Sem o Supabase configurado, o app roda em modo demonstração (login guardado só no navegador, conta `demo@gerencial.app` / `demo1234`).
 - **Pasta na nuvem**: o cliente escolhe a pasta sincronizada do Google Drive, OneDrive ou Dropbox no computador (Chrome ou Edge). O app lê as subpastas de mês (`Novembro2026`, `Nov 2026`, `2026-11`, `11-2026`) e importa arquivos OFX e CSV. A pasta fica lembrada para a próxima vez.
 - **Celular e tablet**: os extratos entram por **Importar extratos** (vários OFX/CSV de uma vez, do Drive, OneDrive, Dropbox ou Arquivos); o mês vem da data de cada lançamento, reimportar não duplica e os dados ficam guardados no aparelho. No Android, com o app instalado, dá para mandar o extrato pelo botão **Compartilhar** de outro app. Navegação na parte de baixo da tela, lançamentos em cartões e instalação como app (ícone na tela inicial).
+- **Conectar minha nuvem** (celular, tablet e computador): o cliente entra na conta do Google Drive, OneDrive ou Dropbox, escolhe a pasta principal e o app lê os meses sozinho a cada abertura. Acesso somente leitura; os arquivos vão direto da nuvem para o aparelho (`nuvem.js`). Os IDs públicos de cada nuvem ficam em `config.js`.
 - **Relatório**: PDF (A4) ou PNG gravado na subpasta do mês. No celular, "Enviar" abre o compartilhamento com o PDF anexado. No computador, abre o WhatsApp ou o e-mail com o resumo do mês.
 - **Privacidade**: extratos e relatórios nunca saem da máquina do cliente. O servidor guarda só nome, e-mail e assinatura.
 
@@ -17,7 +18,11 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
    - Authentication > URL Configuration: em Site URL, coloque o endereço do app na Vercel.
    - Project Settings > API Keys: copie a Project URL e a chave publicável (`sb_publishable_...`) para `config.js`.
 2. **Vercel** (vercel.com, plano gratuito): Add New > Project > importe este repositório do GitHub > Deploy. Não precisa de build.
-3. **Domínio** (opcional, ~R$ 40/ano no registro.br): aponte para a Vercel em Settings > Domains.
+3. **Nuvens** (para "Conectar minha nuvem"): cadastre o app em cada uma, com o endereço de retorno `https://gerencial-familiar.vercel.app/`:
+   - Google Cloud: projeto > ativar Google Drive API > tela de consentimento (Externo, escopo `drive.readonly`, política em `/privacidade.html`) > credencial "ID do cliente OAuth" tipo Aplicativo da Web, com a origem e o URI de redirecionamento acima. Enquanto o app estiver em "Teste", só os usuários de teste cadastrados conseguem entrar (até 100); para liberar a todos, envie para verificação.
+   - Microsoft (portal.azure.com > Registros de aplicativo): contas de qualquer organização e pessoais, plataforma "Aplicativo de página única (SPA)" com o URI acima, permissões delegadas `Files.Read`, `User.Read`, `offline_access`.
+   - Dropbox (dropbox.com/developers/apps): Scoped access, Full Dropbox, permissões `files.metadata.read` e `files.content.read`, Redirect URI acima, "Allow public clients (PKCE)". Acima de 50 usuários, peça status de produção.
+4. **Domínio** (opcional, ~R$ 40/ano no registro.br): aponte para a Vercel em Settings > Domains.
 
 ## Administração
 
@@ -39,6 +44,8 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
 | `index.html`, `styles.css`, `app.js` | o app |
 | `config.js` | endereço e chave pública do Supabase |
 | `supabase/schema.sql` | tabelas e regras de acesso do login |
+| `nuvem.js` | conexão com Google Drive, OneDrive e Dropbox |
+| `privacidade.html` | política de privacidade (exigida pelo Google) |
 | `supabase/admin.sql` | administrador e funções da aba Administração |
 | `sw.js`, `manifest.webmanifest`, `icons/` | instalar como app e abrir rápido |
 | `vendor/` | bibliotecas de PDF/PNG e do Supabase, sem depender de CDN |

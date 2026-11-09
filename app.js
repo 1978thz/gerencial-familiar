@@ -183,6 +183,7 @@ function entrar() {
   ajustarAparelho();
   (async () => {
     const d = await dadosGuardados(); if (d && d.lanc && d.lanc.length) mostrarImportados(d);
+    if (window.GFNuvem) await window.GFNuvem.iniciar();
     if (podePasta()) await restaurarPasta();
     await receberCompartilhados();
   })();
@@ -320,6 +321,7 @@ function desenharGuia() {
     relatorio: !!g.relatorio,
     instalar: instalado(),
     importar: temDados,
+    nuvemlig: !!(window.GFNuvem && window.GFNuvem.conectado()) || fonte === "importado",
     conferir: !!g.conferir,
   };
   const itens = [...lista.children];
@@ -439,6 +441,39 @@ function mostrarImportados(d) {
   $("#limpar-imp").hidden = false;
   atualizarTudo();
 }
+// Dados vindos da conexão direta com a nuvem (nuvem.js): lidos da pasta do cliente, guardados no aparelho.
+function mostrarNuvem(d) {
+  lanc = d.lanc; fonte = "nuvem"; raiz = null; pastasMes = {};
+  arquivosLista = d.arquivos.map(a => ({mes: a.mes, nome: a.nome, n: a.n, ext: a.ext}));
+  $("#pasta-nome").textContent = `${d.provNome} · ${d.pasta} · ${d.arquivos.length} arquivo(s)`;
+  atualizarTudo();
+}
+// Junta os lançamentos de vários arquivos sem contar duas vezes cópias do mesmo extrato.
+function montarLancamentos(arqs) {
+  const lancs = [], arquivos = [], vistos = new Set();
+  for (const a of arqs) {
+    const ext = (a.nome.split(".").pop() || "").toLowerCase();
+    let ls = [];
+    if (["ofx", "csv", "txt"].includes(ext) && a.texto != null) {
+      try {
+        ls = /<STMTTRN>/i.test(a.texto) ? lerOFX(a.texto, a.mes, a.nome) : lerCSV(a.texto, a.mes, a.nome);
+        ls = ls.filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l.data)).map(l => ({...l, mes: a.mes || l.data.slice(0, 7)}));
+      } catch { ls = []; }
+    }
+    const daqui = new Set(), entram = [];
+    for (const l of ls) { const k = chaveLanc(l); if (vistos.has(k)) continue; entram.push(l); daqui.add(k); }
+    daqui.forEach(k => vistos.add(k)); lancs.push(...entram);
+    const cont = {}; entram.forEach(l => cont[l.mes] = (cont[l.mes] || 0) + 1);
+    const top = Object.entries(cont).sort((x, y) => y[1] - x[1])[0];
+    arquivos.push({nome: a.nome, n: entram.length, ext, mes: a.mes || (top ? top[0] : null)});
+  }
+  return {lanc: lancs, arquivos: arquivos.filter(a => a.mes)};
+}
+window.GFApp = {
+  usuario: () => usuario, toast, esc, store, irPara, mesDaPasta, montarLancamentos, mostrarNuvem,
+  idb: (modo, fn) => idb(modo, fn), atualizarGuia: () => desenharGuia(), movel,
+  voltarExemplo: () => $("#exemplo").click(),
+};
 async function importarArquivos(files) {
   if (!files.length) return;
   const d = (await dadosGuardados()) || {lanc: [], arquivos: []};
@@ -524,7 +559,7 @@ function desenharRelatorio() {
   const top = r.ls.filter(l => l.valor < 0).sort((a, b) => a.valor - b.valor).slice(0, 8);
   $("#rel").innerHTML = `
     <div class="rh"><div><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#2f6f5e;font-weight:600">Relatório mensal</div><h2>${esc(usuario.nome)} · ${mesNome(m)}</h2></div>
-      <div style="text-align:right;font-size:12px;color:#5a6b66">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
+      <div style="text-align:right;font-size:12px;color:#5a6b66">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : fonte === "nuvem" ? $("#pasta-nome").textContent.split(" · ").slice(0, 2).join(" · ") : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
     <div class="rk"><div><span>Entradas</span><b class="pos">${brl(r.ent)}</b></div><div><span>Saídas</span><b class="neg">${brl(r.sai)}</b></div><div><span>Saldo do mês</span><b class="${r.saldo < 0 ? "neg" : "pos"}">${brl(r.saldo)}</b></div></div>
     <h3 style="margin:0 0 10px;color:#16302b">Saídas por categoria</h3>
     ${r.cats.map(([c, v]) => `<div class="rb"><span>${esc(c)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><span class="num" style="text-align:right">${brl(v)}</span></div>`).join("")}
@@ -602,7 +637,7 @@ $("#b-mail").onclick = () => compartilhar("mail");
 /* ---------- geral ---------- */
 function atualizarTudo() {
   preencherMeses(); desenharPainel(); desenharArquivos(); desenharRelatorio();
-  $("#fonte-txt").textContent = fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : fonte === "importado" ? "Extratos importados neste aparelho" : "Dados de exemplo (fictícios)";
+  $("#fonte-txt").textContent = fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : fonte === "importado" ? "Extratos importados neste aparelho" : fonte === "nuvem" ? "Sincronizado: " + $("#pasta-nome").textContent : "Dados de exemplo (fictícios)";
   desenharGuia();
 }
 $("#mes").onchange = desenharPainel; $("#busca").oninput = desenharPainel; $("#mes-rel").onchange = desenharRelatorio;

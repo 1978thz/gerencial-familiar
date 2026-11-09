@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidade · Gerencial Familiar</title>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+<style>
+  main{max-width:760px;margin:0 auto;padding:32px 20px 60px}
+  h1{font-size:28px;margin-bottom:6px}
+  h2{font-size:19px;margin:28px 0 8px}
+  p,li{line-height:1.6}
+  ul{padding-left:20px}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand" style="margin-bottom:18px"><div class="brand-mark">G</div><b>Gerencial Familiar</b></div>
+  <h1>Política de Privacidade</h1>
+  <p class="muted small">Última atualização: 9 de novembro de 2026</p>
+
+  <p>O Gerencial Familiar é um aplicativo web que organiza as contas da casa a partir dos extratos bancários que o próprio usuário guarda na sua nuvem (Google Drive, OneDrive ou Dropbox) ou no seu computador. Esta política explica quais dados o aplicativo usa e como.</p>
+
+  <h2>1. Dados do cadastro</h2>
+  <p>Para entrar no aplicativo guardamos apenas <b>nome, e-mail, senha (criptografada) e a situação da assinatura</b> (período de teste, ativa, suspensa). Esses dados ficam no nosso provedor de autenticação (Supabase) e servem só para o login e o controle da assinatura.</p>
+
+  <h2>2. Extratos e relatórios</h2>
+  <p>Extratos, lançamentos e relatórios <b>não são enviados aos nossos servidores</b>. Eles são lidos e processados no próprio aparelho do usuário (no navegador) e guardados apenas nesse aparelho, para abrir mais rápido. O usuário pode apagá-los a qualquer momento pelo botão "Desconectar" ou "Apagar dados importados", ou limpando os dados do navegador.</p>
+
+  <h2>3. Conexão com Google Drive, OneDrive e Dropbox</h2>
+  <p>Quando o usuário escolhe "Conectar minha nuvem", ele entra na página oficial da sua nuvem e autoriza o Gerencial Familiar com permissão <b>somente de leitura</b>:</p>
+  <ul>
+    <li><b>Google Drive</b>: permissão <span class="num">drive.readonly</span>, usada para listar as pastas, para o usuário escolher a pasta dos extratos, e para ler os arquivos de extrato (OFX e CSV) dentro dela.</li>
+    <li><b>OneDrive</b>: permissões <span class="num">Files.Read</span> e <span class="num">User.Read</span>, com o mesmo uso.</li>
+    <li><b>Dropbox</b>: leitura de arquivos e pastas, com o mesmo uso.</li>
+  </ul>
+  <p>O acesso é usado <b>apenas para mostrar ao próprio usuário</b> o painel e o relatório das suas contas. O aplicativo não altera, não apaga e não compartilha arquivos. A autorização e os arquivos lidos ficam somente no aparelho do usuário. Eles <b>não são transmitidos nem armazenados</b> em servidores do Gerencial Familiar ou de terceiros, <b>não são usados para publicidade</b>, não são vendidos e não são usados para treinar modelos de inteligência artificial.</p>
+  <p>O uso e a transferência de informações recebidas das APIs do Google seguem a <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado.</p>
+
+  <h2>4. Como remover o acesso</h2>
+  <p>No aplicativo, na aba Extratos, toque em <b>Desconectar</b>. Para revogar a autorização na própria nuvem, use as configurações de segurança da sua conta Google (myaccount.google.com/permissions), Microsoft (account.microsoft.com/privacy) ou Dropbox (Configurações › Apps conectados).</p>
+
+  <h2>5. Seus direitos (LGPD)</h2>
+  <p>Você pode pedir acesso, correção ou exclusão dos seus dados de cadastro a qualquer momento pelo e-mail abaixo. A exclusão da conta remove nome, e-mail e assinatura dos nossos registros.</p>
+
+  <h2>6. Contato</h2>
+  <p>THZ Gestão de Projetos · <a href="mailto:1978.thz@gmail.com">1978.thz@gmail.com</a></p>
+
+  <p style="margin-top:32px"><a href="./">Voltar ao Gerencial Familiar</a></p>
+</main>
+</body>
+</html>

@@ -192,3 +192,25 @@ html.movel .so-pc{display:none}
   #evol{font-size:12.5px}
   #evol th,#evol td{padding:7px 4px;white-space:nowrap}
 }
+
+/* ---------- conectar minha nuvem ---------- */
+.nv-provs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.nv-prov{flex-direction:column;align-items:flex-start;gap:2px;padding:14px 16px;border-radius:12px;text-align:left;min-height:64px}
+.nv-prov b{font-size:16px}
+.nv-prov small{font-weight:500;color:var(--muted);font-size:12.5px}
+.nv-prov:not(:disabled):hover{border-color:var(--accent);background:var(--accent-soft)}
+.nv-prov:disabled{opacity:.55;cursor:not-allowed}
+.nv-status{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--accent-soft);border-radius:10px;padding:12px 14px}
+@media (max-width:520px){.nv-status{grid-template-columns:1fr}}
+#nv-dlg{border:1px solid var(--line);border-radius:14px;padding:16px;width:min(520px,calc(100vw - 24px));max-height:min(80vh,640px);background:var(--card);color:var(--ink)}
+#nv-dlg[open]{display:flex;flex-direction:column;gap:10px}
+#nv-dlg::backdrop{background:rgba(10,20,18,.45)}
+.nv-dlg-topo{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#nv-trilha{display:flex;flex-wrap:wrap;gap:4px;align-items:center;color:var(--muted)}
+#nv-lista{list-style:none;margin:0;padding:0;overflow-y:auto;flex:1;min-height:120px;border:1px solid var(--line);border-radius:10px}
+#nv-lista li{border-bottom:1px solid var(--line)}
+#nv-lista li:last-child{border-bottom:0}
+#nv-lista li.muted,#nv-lista li.neg{padding:12px}
+.nv-item{width:100%;border:0;border-radius:0;justify-content:flex-start;background:none;padding:12px;min-height:48px;font-weight:500}
+.nv-item:hover{background:var(--accent-soft)}
+.nv-ic{font-size:18px}
