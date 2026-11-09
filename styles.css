@@ -126,3 +126,69 @@ details{border-top:1px solid var(--line);padding:10px 0}
 details:first-of-type{border-top:0;padding-top:0}
 details summary{cursor:pointer;font-weight:600}
 details p{margin:8px 0 0;font-size:14px;color:var(--muted)}
+
+/* ---------- celular e tablet ---------- */
+.ico{display:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.top-acoes{display:flex;gap:8px}
+.adm-acoes{white-space:nowrap}
+html.movel button,html.movel input,html.movel select{min-height:44px}
+html.movel input,html.movel select{font-size:16px}
+html.movel *{-webkit-tap-highlight-color:transparent}
+@media (max-width:760px){
+  /* Navegação embaixo, ao alcance do polegar */
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--card);border-top:1px solid var(--line);
+    padding:4px max(4px,env(safe-area-inset-left,0px)) calc(4px + env(safe-area-inset-bottom,0px));gap:0;overflow:visible;box-shadow:0 -4px 16px rgba(0,0,0,.05)}
+  nav.tabs button{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:3px;font-size:11px;font-weight:600;padding:6px 2px;border:0;min-height:56px}
+  nav.tabs button span{overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  nav.tabs button .ico{display:block;padding:3px 10px;width:44px;height:28px;border-radius:99px;box-sizing:border-box}
+  nav.tabs button.on{color:var(--accent);border:0}
+  nav.tabs button.on .ico{background:var(--accent-soft)}
+  main{padding-block:12px calc(96px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  .top-row{padding-block:8px}
+  .top-row h1{font-size:18px}
+  .panel{padding:14px;border-radius:14px}
+  .row>*{flex:1 1 100%}
+  .row>button.auto{flex:1 1 calc(50% - 6px)}
+  .kpis{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi{padding:10px 12px}
+  .kpi .v{font-size:17px}
+  input,select{font-size:16px}
+  /* Lançamentos em cartões */
+  #lanc tr:first-child{display:none}
+  #lanc tr{display:grid;grid-template-columns:auto auto 1fr;grid-template-areas:"d d v" "dt c ct";gap:4px 8px;padding:10px 2px;border-bottom:1px solid var(--line);align-items:center}
+  #lanc td{border:0;padding:0}
+  #lanc td:nth-child(1){grid-area:dt;font-size:12px;color:var(--muted)}
+  #lanc td:nth-child(2){grid-area:d;font-weight:500;overflow-wrap:anywhere}
+  #lanc td:nth-child(3){grid-area:c}
+  #lanc td:nth-child(4){grid-area:ct;font-size:12px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #lanc td:nth-child(5){grid-area:v;text-align:right;font-weight:500;white-space:nowrap}
+  /* Administração em cartões */
+  #adm-tab tr:first-child{display:none}
+  #adm-tab tr{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;padding:12px 0;border-bottom:1px solid var(--line)}
+  #adm-tab td{border:0;padding:0}
+  #adm-tab td:first-child{grid-column:1/-1}
+  #adm-tab td[data-l]::before{content:attr(data-l);display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+  #adm-tab .adm-acoes{grid-column:1/-1;display:flex;gap:8px}
+  #adm-tab .adm-acoes button{flex:1}
+  .guia-topo{flex-direction:column;align-items:stretch}
+  ol.passos>li>button{align-self:stretch;justify-content:center}
+}
+/* Tablet: abas em cima, mas com área de toque maior */
+@media (min-width:761px){html.movel nav.tabs button{padding:12px 16px}}
+/* Pré-visualização do relatório cabe na tela (o arquivo continua em tamanho A4) */
+.rel-out.encaixe{overflow:hidden}
+.rel-out.encaixe #rel{transform-origin:top left}
+html.movel .so-pc{display:none}
+@media (max-width:760px){
+  .top-row{gap:8px}
+  .top-row .brand{min-width:0}
+  .top-row .brand>div:last-child{min-width:0}
+  #fonte-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top-acoes{flex:none}
+  .top-acoes button{padding:6px 10px;font-size:13px;min-height:38px}
+  .bar{grid-template-columns:minmax(70px,96px) 1fr auto;gap:8px}
+  .bar .num{white-space:nowrap;font-size:13px}
+  #evol{font-size:12.5px}
+  #evol th,#evol td{padding:7px 4px;white-space:nowrap}
+}

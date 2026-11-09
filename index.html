@@ -7,6 +7,11 @@
 <meta name="theme-color" content="#2f6f5e">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gerencial">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
@@ -44,14 +49,14 @@
   <header class="top"><div class="wrap">
     <div class="top-row">
       <div class="brand"><div class="brand-mark">G</div><div><h1 id="fam">Família</h1><div class="muted small" id="fonte-txt">Dados de exemplo</div></div></div>
-      <button id="sair">Sair</button>
+      <div class="top-acoes"><button id="instalar" hidden>Instalar app</button><button id="sair">Sair</button></div>
     </div>
     <nav class="tabs" id="tabs">
-      <button data-v="guia">Como usar</button>
-      <button data-v="painel" class="on">Painel</button>
-      <button data-v="pasta">Pasta na nuvem</button>
-      <button data-v="relatorio">Relatório</button>
-      <button data-v="admin" id="tab-admin" hidden>Administração</button>
+      <button data-v="guia"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 13.5v.01M12 13.5c0-2 2.5-2 2.5-4a2.5 2.5 0 0 0-5 0"/></svg><span>Como usar</span></button>
+      <button data-v="painel" class="on"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg><span>Painel</span></button>
+      <button data-v="pasta"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm9 3v6m-3-3 3 3 3-3"/></svg><span>Extratos</span></button>
+      <button data-v="relatorio"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7Zm7 0v5h5M10 13h6m-6 4h6"/></svg><span>Relatório</span></button>
+      <button data-v="admin" id="tab-admin" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6Zm-3 9 2 2 4-4"/></svg><span>Admin</span></button>
     </nav>
   </div></header>
 
@@ -66,10 +71,35 @@
         <div class="prog"><div class="prog-n num" id="guia-n">0/5</div><div class="track"><div class="fill" id="guia-bar"></div></div></div>
       </div>
 
+      <ol class="passos" id="passos-movel" hidden>
+        <li data-p="instalar">
+          <div class="p-head"><span class="p-ck"></span><h3>Instale o app na tela inicial</h3></div>
+          <p id="inst-android">No Android, toque em <b>Instalar app</b> no topo da tela. Se o botão não aparecer, abra o menu <b>⋮</b> do Chrome e toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</p>
+          <p id="inst-ios" hidden>No iPhone ou iPad, abra este endereço no <b>Safari</b>, toque em <b>Compartilhar</b> (o quadrado com a seta para cima) e depois em <b>Adicionar à Tela de Início</b>.</p>
+          <p class="small">Instalado, o Gerencial abre em tela cheia pelo ícone, como um aplicativo, e você continua conectado.</p>
+        </li>
+        <li data-p="importar">
+          <div class="p-head"><span class="p-ck"></span><h3>Importe os extratos do mês</h3></div>
+          <p>No app do banco, exporte o extrato do mês em <b>OFX</b> (ou CSV) e salve no Google Drive, OneDrive, Dropbox ou em Arquivos. Depois, na aba <b>Extratos</b>, toque em <b>Escolher arquivos do banco</b> e selecione um ou vários arquivos.</p>
+          <p class="small" id="dica-compartilhar">Mais rápido no Android: no app do banco ou no Drive, toque em <b>Compartilhar</b> no arquivo e escolha <b>Gerencial</b>.</p>
+          <button class="pri" data-ir="pasta">Ir para Extratos</button>
+        </li>
+        <li data-p="conferir">
+          <div class="p-head"><span class="p-ck"></span><h3>Confira o painel</h3></div>
+          <p>No <b>Painel</b>, escolha o mês e veja entradas, saídas, saldo e gastos por categoria. Toque na busca e digite, por exemplo, "mercado" ou "Pix" para achar um lançamento.</p>
+          <label class="ck-manual"><input type="checkbox" data-manual="conferir"> Já conferi o painel</label>
+        </li>
+        <li data-p="relatorio">
+          <div class="p-head"><span class="p-ck"></span><h3>Envie o relatório</h3></div>
+          <p>Na aba <b>Relatório</b>, toque em <b>Enviar por WhatsApp</b> ou <b>Enviar por e-mail</b>: o PDF vai anexado. Em <b>Salvar PDF</b>, você escolhe guardar no Drive ou em Arquivos.</p>
+          <button class="pri" data-ir="relatorio">Ir para Relatório</button>
+        </li>
+      </ol>
+
       <ol class="passos" id="passos">
         <li data-p="aparelho">
           <div class="p-head"><span class="p-ck"></span><h3>Use o computador, no Chrome ou no Edge</h3></div>
-          <p>O sistema lê e grava na pasta da nuvem pelo navegador. Isso funciona por completo no <b>Google Chrome</b> ou no <b>Microsoft Edge</b> do computador. Em outros navegadores ele só lê, e o relatório vai para Downloads. No celular, use o app para consultar e enviar o relatório.</p>
+          <p>O sistema lê e grava na pasta da nuvem pelo navegador. Isso funciona por completo no <b>Google Chrome</b> ou no <b>Microsoft Edge</b> do computador. Em outros navegadores ele só lê, e o relatório vai para Downloads. No celular e no tablet, o app também funciona: os extratos entram pelo botão de importar.</p>
           <p class="muted small" id="guia-nav"></p>
           <p class="small">Dica: instale como aplicativo pelo ícone de instalar na barra de endereço do Chrome. Ele abre em janela própria e mais rápido.</p>
         </li>
@@ -93,9 +123,9 @@
         </li>
         <li data-p="pasta">
           <div class="p-head"><span class="p-ck"></span><h3>Escolha a pasta principal no sistema</h3></div>
-          <p>Na aba <b>Pasta na nuvem</b>, clique em <b>Escolher a pasta sincronizada</b>, selecione a pasta principal (não a do mês) e permita <b>ver e editar</b> os arquivos. A lista mostra cada mês e quantos lançamentos foram lidos de cada arquivo.</p>
+          <p>Na aba <b>Extratos</b>, clique em <b>Escolher a pasta sincronizada</b>, selecione a pasta principal (não a do mês) e permita <b>ver e editar</b> os arquivos. A lista mostra cada mês e quantos lançamentos foram lidos de cada arquivo.</p>
           <p class="small">Nos próximos acessos, use <b>Reabrir a última pasta</b>: o navegador pede a permissão de novo, por segurança.</p>
-          <button class="pri" data-ir="pasta">Ir para Pasta na nuvem</button>
+          <button class="pri" data-ir="pasta">Ir para Extratos</button>
         </li>
         <li data-p="relatorio">
           <div class="p-head"><span class="p-ck"></span><h3>Confira o painel e gere o relatório</h3></div>
@@ -111,7 +141,7 @@
           <ol class="rotina">
             <li>No começo do mês, crie a subpasta do mês que terminou (ex.: <span class="num">2026-11</span>).</li>
             <li>No app ou site de cada banco, exporte o extrato do mês inteiro em <b>OFX</b> e salve na subpasta.</li>
-            <li>Abra o sistema e clique em <b>Reabrir a última pasta</b>.</li>
+            <li>Abra o sistema e clique em <b>Reabrir a última pasta</b> (no celular: <b>Escolher arquivos do banco</b>).</li>
             <li>Confira o Painel, principalmente a categoria <b>Outros</b>.</li>
             <li>Salve o PDF e envie para quem acompanha as contas.</li>
           </ol>
@@ -134,7 +164,7 @@
           <li><b>Transferências entre contas da família</b> aparecem como saída em uma conta e entrada na outra. Entram nos totais de entradas e saídas, mas não mudam o saldo do mês.</li>
           <li><b>Um arquivo por conta por mês.</b> Não deixe duas cópias do mesmo extrato (por exemplo, "extrato.ofx" e "extrato (1).ofx"): os lançamentos são somados duas vezes.</li>
           <li><b>Categorias automáticas</b> vêm do texto do lançamento (mercado, escola, farmácia, posto, fatura...). O que não for reconhecido vai para <b>Outros</b>. Use a busca do Painel para conferir esses itens.</li>
-          <li><b>Seus dados ficam com você.</b> Extratos e relatórios são lidos e gravados só no seu computador e na sua nuvem. O servidor do sistema guarda apenas nome, e-mail e assinatura.</li>
+          <li><b>Seus dados ficam com você.</b> Extratos e relatórios são lidos e gravados só no seu aparelho e na sua nuvem. O servidor do sistema guarda apenas nome, e-mail e assinatura.</li>
         </ul>
       </div>
 
@@ -146,8 +176,12 @@
           <p>O formato não foi reconhecido. Prefira o OFX. Se for CSV, abra no Excel e confira se a primeira linha tem as colunas Data e Valor.</p></details>
         <details><summary>O relatório foi para Downloads e não para a pasta</summary>
           <p>O navegador não tem permissão de gravação. Use Chrome ou Edge no computador, clique em <b>Reabrir a última pasta</b> e permita <b>ver e editar</b>. Se escolheu "só leitura", escolha a pasta de novo.</p></details>
-        <details><summary>O botão "Escolher a pasta" não abre no celular</summary>
-          <p>Os celulares ainda não permitem que sites abram pastas inteiras. Faça a leitura no computador. No celular, use o app para consultar e enviar o relatório já gerado.</p></details>
+        <details><summary>No celular ou tablet não aparece "Escolher a pasta"</summary>
+          <p>Os navegadores de celular e tablet não deixam sites abrirem uma pasta inteira. Use <b>Escolher arquivos do banco</b> na aba Extratos: dá para selecionar vários arquivos de uma vez, direto do Drive ou de Arquivos.</p></details>
+        <details><summary>No celular, um arquivo .ofx aparece apagado na hora de escolher</summary>
+          <p>Toque em "Procurar" ou "Navegar" e abra o arquivo pela pasta do Drive ou de Arquivos. No Android, outra saída é usar <b>Compartilhar</b> no arquivo e escolher <b>Gerencial</b>.</p></details>
+        <details><summary>Os dados sumiram do celular</summary>
+          <p>Os extratos importados ficam guardados no próprio aparelho. Eles somem se você limpar os dados do navegador ou trocar de aparelho. Basta importar de novo os arquivos que estão na sua nuvem.</p></details>
         <details><summary>Esqueci a senha ou aparece "Assinatura inativa"</summary>
           <p>Na tela de entrada, digite o e-mail e clique em <b>Esqueci minha senha</b> para receber o link. Se aparecer "Assinatura inativa", o período de teste ou a assinatura terminou: fale com o suporte para renovar.</p></details>
       </div>
@@ -169,17 +203,28 @@
 
     <!-- PASTA -->
     <section class="view" id="v-pasta">
-      <div class="panel">
-        <h2>Onde ficam seus arquivos</h2>
-        <p class="muted small" style="margin:0">Crie uma subpasta por mês (por exemplo <span class="num">Novembro2026</span> ou <span class="num">2026-11</span>) e salve nela extratos e faturas em OFX ou CSV. O sistema lê cada mês e grava o relatório na mesma subpasta.</p>
-        <div class="cloud" id="cloud">
+      <div class="panel" id="imp-panel">
+        <h2>Importar extratos</h2>
+        <p class="muted small" style="margin:0">Escolha os arquivos <b>OFX</b> ou <b>CSV</b> baixados do banco: do Google Drive, OneDrive, Dropbox ou da pasta Downloads. O mês é identificado pela data de cada lançamento. Importar o mesmo arquivo de novo atualiza, sem duplicar. Os dados ficam guardados só neste aparelho.</p>
+        <div class="row">
+          <button class="pri auto" id="importar">Escolher arquivos do banco</button>
+          <button class="auto" id="limpar-imp" hidden>Apagar dados importados</button>
+          <input id="imp-input" type="file" multiple hidden>
+        </div>
+        <div class="note" id="imp-android" hidden>Atalho no Android: no app do banco ou no Google Drive, toque em <b>Compartilhar</b> no extrato e escolha <b>Gerencial</b>. O arquivo entra direto aqui. Para isso, instale o app antes (aba Como usar).</div>
+      </div>
+      <div class="panel" id="pasta-panel">
+        <h2>Pasta da nuvem no computador</h2>
+        <p class="muted small so-pc" style="margin:0">Crie uma subpasta por mês (por exemplo <span class="num">Novembro2026</span> ou <span class="num">2026-11</span>) e salve nela extratos e faturas em OFX ou CSV. O sistema lê cada mês e grava o relatório na mesma subpasta.</p>
+        <div class="cloud so-pc" id="cloud">
           <label><input type="radio" name="nuvem" value="gdrive" checked>Google Drive</label>
           <label><input type="radio" name="nuvem" value="onedrive">OneDrive</label>
           <label><input type="radio" name="nuvem" value="dropbox">Dropbox</label>
           <label><input type="radio" name="nuvem" value="local">Pasta no computador</label>
         </div>
-        <label class="f">Link ou caminho da pasta<input id="pasta-link" type="text" placeholder="https://drive.google.com/drive/folders/... ou G:\Meu Drive\Finanças"></label>
-        <div class="row">
+        <label class="f so-pc">Link ou caminho da pasta<input id="pasta-link" type="text" placeholder="https://drive.google.com/drive/folders/... ou G:\Meu Drive\Finanças"></label>
+        <div class="note" id="pasta-movel" hidden>Neste aparelho o navegador não consegue abrir uma pasta inteira. Use <b>Importar extratos</b> acima. A leitura automática da pasta e a gravação do relatório nela funcionam no computador, no Chrome ou no Edge.</div>
+        <div class="row" id="pasta-acoes">
           <button class="pri auto" id="escolher">Escolher a pasta sincronizada</button>
           <button class="auto" id="reabrir" hidden>Reabrir a última pasta</button>
           <button class="auto" id="exemplo">Voltar aos dados de exemplo</button>

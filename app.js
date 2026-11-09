@@ -180,11 +180,19 @@ function entrar() {
   if (cfg.mail) $("#mail").value = cfg.mail;
   if (cfg.nuvem) { const r = document.querySelector(`input[name=nuvem][value=${cfg.nuvem}]`); if (r) r.checked = true; }
   atualizarTudo();
-  restaurarPasta();
+  ajustarAparelho();
+  (async () => {
+    const d = await dadosGuardados(); if (d && d.lanc && d.lanc.length) mostrarImportados(d);
+    if (podePasta()) await restaurarPasta();
+    await receberCompartilhados();
+  })();
   $("#tab-admin").hidden = !usuario.admin;
   if (usuario.admin) carregarAdmin();
   // No primeiro acesso deste usuário neste navegador, abre direto o guia.
   if (!guiaGet().visto) { guiaMarcar("visto"); irPara("guia"); }
+  // Atalhos do ícone instalado (segurar o ícone): ?ir=pasta ou ?ir=relatorio
+  const ir = new URLSearchParams(location.search).get("ir");
+  if (ir && document.getElementById("v-" + ir)) { irPara(ir); history.replaceState(null, "", location.pathname + location.search.replace(/[?&]ir=[^&]*/, "").replace(/^&/, "?")); }
   desenharGuia();
 }
 
@@ -222,12 +230,12 @@ function desenharAdmin() {
       const s = situacao(c), alerta = ["vencida", "suspensa", "cancelada", "pendente", "sem assinatura"].includes(s);
       return `<tr data-id="${esc(c.user_id)}">
         <td><b>${esc(c.nome || "—")}</b>${c.admin ? ' <span class="tag">adm</span>' : ""}<div class="muted small">${esc(c.email)}</div></td>
-        <td class="num small">${dataBR(c.criado_em)}</td>
-        <td class="num small">${dataHoraBR(c.ultimo_login)}</td>
+        <td class="num small" data-l="Cadastro">${dataBR(c.criado_em)}</td>
+        <td class="num small" data-l="Último login">${dataHoraBR(c.ultimo_login)}</td>
         <td><span class="tag${alerta ? " warn" : ""}">${ROTULO[s] || s}</span></td>
-        <td><select class="adm-status">${["teste", "ativa", "suspensa", "cancelada"].map(o => `<option value="${o}"${(c.status || "teste") === o ? " selected" : ""}>${ROTULO[o]}</option>`).join("")}</select></td>
-        <td><input class="adm-validade" type="date" value="${esc(c.valido_ate || "")}"></td>
-        <td style="white-space:nowrap"><button class="pri adm-salvar">Salvar</button> <button class="adm-30">+30 dias</button></td>
+        <td data-l="Status"><select class="adm-status">${["teste", "ativa", "suspensa", "cancelada"].map(o => `<option value="${o}"${(c.status || "teste") === o ? " selected" : ""}>${ROTULO[o]}</option>`).join("")}</select></td>
+        <td data-l="Válido até"><input class="adm-validade" type="date" value="${esc(c.valido_ate || "")}"></td>
+        <td class="adm-acoes"><button class="pri adm-salvar">Salvar</button> <button class="adm-30">+30 dias</button></td>
       </tr>`;
     }).join("");
 }
@@ -256,6 +264,7 @@ function irPara(v) {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x.dataset.v === v));
   document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === "v-" + v));
   window.scrollTo({top: 0});
+  if (v === "relatorio") requestAnimationFrame(encaixarRelatorio);
 }
 $("#tabs").onclick = e => { const b = e.target.closest("button"); if (b) irPara(b.dataset.v); };
 
@@ -264,29 +273,68 @@ $("#tabs").onclick = e => { const b = e.target.closest("button"); if (b) irPara(
 const guiaChave = () => "gf_guia_" + (usuario ? usuario.email : "");
 const guiaGet = () => store.get(guiaChave(), {});
 function guiaMarcar(k, v = true) { const g = guiaGet(); g[k] = v; store.set(guiaChave(), g); desenharGuia(); }
-const celular = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// Celular ou tablet (o iPad se apresenta como Mac, por isso o teste de toque).
+const movel = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const celular = movel;
+const podePasta = () => !!window.showDirectoryPicker && !movel();
+const android = () => /Android/i.test(navigator.userAgent);
+const ios = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const instalado = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+// Instalar como app: Android/computador usam o convite do navegador; no iPhone/iPad o guia mostra o caminho.
+let convite = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); convite = e; if (!instalado()) $("#instalar").hidden = false; });
+addEventListener("appinstalled", () => { $("#instalar").hidden = true; convite = null; toast("App instalado. Abra pelo ícone Gerencial."); desenharGuia(); });
+$("#instalar").onclick = async () => {
+  if (convite) { convite.prompt(); await convite.userChoice; convite = null; $("#instalar").hidden = true; return; }
+  irPara("guia"); const p = document.querySelector('[data-p="instalar"]'); if (p) p.scrollIntoView({behavior: "smooth", block: "center"});
+};
+// O relatório é desenhado em tamanho A4; na tela pequena, a prévia é reduzida para caber (o arquivo sai inteiro).
+function encaixarRelatorio() {
+  const out = $(".rel-out"), rel = $("#rel"); if (!out || !rel) return;
+  const w = out.clientWidth, s = Math.min(1, w / 760);
+  out.classList.toggle("encaixe", s < 1);
+  rel.style.transform = s < 1 ? `scale(${s})` : "";
+  out.style.height = s < 1 ? rel.offsetHeight * s + "px" : "";
+}
+addEventListener("resize", encaixarRelatorio);
+function ajustarAparelho() {
+  if (ios() && !instalado()) $("#instalar").hidden = false;
+  document.documentElement.classList.toggle("movel", movel());
+  $("#pasta-movel").hidden = podePasta(); $("#pasta-acoes").hidden = !podePasta();
+  $("#pasta-dica").hidden = !podePasta();
+  $("#imp-android").hidden = !android();
+  if (movel()) { $("#b-pdf").textContent = "Salvar PDF"; $("#b-png").textContent = "Salvar imagem"; }
+  // No computador a pasta vem primeiro; no celular e tablet, a importação.
+  if (podePasta()) $("#v-pasta").prepend($("#pasta-panel"));
+}
 function desenharGuia() {
   if (!usuario) return;
-  const g = guiaGet(), temPasta = fonte === "pasta", temMeses = Object.keys(pastasMes).length > 0 || arquivosLista.length > 0;
-  const completo = !!window.showDirectoryPicker && !celular();
+  const m = movel(), lista = m ? $("#passos-movel") : $("#passos");
+  $("#passos-movel").hidden = !m; $("#passos").hidden = m;
+  const g = guiaGet(), temPasta = fonte === "pasta", temDados = fonte !== "exemplo", temMeses = Object.keys(pastasMes).length > 0 || arquivosLista.length > 0;
   const feito = {
-    aparelho: completo,
+    aparelho: podePasta(),
     nuvem: !!g.nuvem || temPasta,
     estrutura: !!g.estrutura || temMeses,
     pasta: temPasta,
     relatorio: !!g.relatorio,
+    instalar: instalado(),
+    importar: temDados,
+    conferir: !!g.conferir,
   };
-  document.querySelectorAll("#passos > li").forEach(li => li.classList.toggle("feito", !!feito[li.dataset.p]));
-  document.querySelectorAll("#passos [data-manual]").forEach(c => { c.checked = !!feito[c.dataset.manual]; });
-  const n = Object.values(feito).filter(Boolean).length;
-  $("#guia-n").textContent = `${n}/5`; $("#guia-bar").style.width = (n / 5 * 100) + "%";
-  $("#guia-nav").textContent = completo
+  const itens = [...lista.children];
+  itens.forEach(li => li.classList.toggle("feito", !!feito[li.dataset.p]));
+  lista.querySelectorAll("[data-manual]").forEach(c => { c.checked = !!feito[c.dataset.manual]; });
+  const n = itens.filter(li => feito[li.dataset.p]).length;
+  $("#guia-n").textContent = `${n}/${itens.length}`; $("#guia-bar").style.width = (n / itens.length * 100) + "%";
+  $("#inst-ios").hidden = !ios(); $("#inst-android").hidden = ios(); $("#dica-compartilhar").hidden = !android();
+  $("#guia-nav").textContent = podePasta()
     ? "Este navegador está pronto: lê e grava direto na pasta."
-    : celular()
-      ? "Você está no celular: aqui dá para consultar e enviar. Para ler a pasta, abra o sistema no computador."
+    : m
+      ? "Você está no celular ou tablet: veja os passos acima."
       : "Este navegador só consegue ler a pasta e baixar o relatório. Para gravar direto na pasta, abra no Chrome ou no Edge.";
 }
-$("#passos").onchange = e => { const c = e.target.closest("[data-manual]"); if (c) guiaMarcar(c.dataset.manual, c.checked); };
+$("#passos").onchange = $("#passos-movel").onchange = e => { const c = e.target.closest("[data-manual]"); if (c) guiaMarcar(c.dataset.manual, c.checked); };
 $("#v-guia").onclick = e => { const b = e.target.closest("[data-ir]"); if (b) irPara(b.dataset.ir); };
 
 /* ---------- pasta ---------- */
@@ -372,6 +420,65 @@ $("#pasta-input").onchange = async e => {
 };
 $("#exemplo").onclick = () => { lanc = exemplo(); fonte = "exemplo"; raiz = null; pastasMes = {}; arquivosLista = []; $("#pasta-nome").textContent = "Nenhuma pasta escolhida"; atualizarTudo(); };
 
+/* ---------- importar arquivos (celular, tablet e computador) ---------- */
+// Sem pasta: o usuário escolhe os arquivos. O mês vem da data de cada lançamento.
+// Os dados ficam só neste aparelho (IndexedDB), por usuário, e voltam no próximo acesso.
+const chaveDados = () => "dados:" + usuario.email;
+const dadosGuardados = () => idb("readonly", st => st.get(chaveDados())).catch(() => null);
+const guardarDados = d => idb("readwrite", st => st.put(d, chaveDados())).catch(() => {});
+const apagarDados = () => idb("readwrite", st => st.delete(chaveDados())).catch(() => {});
+const chaveLanc = l => [l.data, l.valor, l.desc.toLowerCase(), l.conta].join("|");
+function lerArquivoTexto(txt, nome) {
+  const ls = /<STMTTRN>/i.test(txt) ? lerOFX(txt, null, nome) : lerCSV(txt, null, nome);
+  return ls.filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l.data)).map(l => ({...l, mes: l.data.slice(0, 7)}));
+}
+function mostrarImportados(d) {
+  lanc = d.lanc; fonte = "importado"; raiz = null; pastasMes = {};
+  arquivosLista = d.arquivos.map(a => ({mes: a.mes, nome: a.nome, n: a.n, ext: a.ext}));
+  $("#pasta-nome").textContent = `Importados neste aparelho · ${d.arquivos.length} arquivo(s)`;
+  $("#limpar-imp").hidden = false;
+  atualizarTudo();
+}
+async function importarArquivos(files) {
+  if (!files.length) return;
+  const d = (await dadosGuardados()) || {lanc: [], arquivos: []};
+  let novos = 0, repetidos = 0, ignorados = [];
+  for (const f of files) {
+    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    let ls = [];
+    try { ls = lerArquivoTexto(await f.text(), f.name); } catch {}
+    if (!ls.length) { ignorados.push(f.name); continue; }
+    // Reimportar o mesmo arquivo substitui a versão anterior dele.
+    d.lanc = d.lanc.filter(l => l.arquivo !== f.name); d.arquivos = d.arquivos.filter(a => a.nome !== f.name);
+    // Lançamento idêntico vindo de outro arquivo (cópia do mesmo extrato) não entra de novo.
+    const existentes = new Set(d.lanc.map(chaveLanc));
+    const entram = ls.filter(l => !existentes.has(chaveLanc(l)));
+    repetidos += ls.length - entram.length; novos += entram.length;
+    d.lanc.push(...entram);
+    const cont = {}; entram.forEach(l => cont[l.mes] = (cont[l.mes] || 0) + 1);
+    const mes = Object.entries(cont).sort((a, b) => b[1] - a[1])[0];
+    d.arquivos.push({nome: f.name, n: entram.length, ext, mes: mes ? mes[0] : ls[0].mes, em: new Date().toISOString()});
+  }
+  if (!novos && !repetidos) return toast(`Não encontrei lançamentos em ${ignorados.join(", ")}. Use extratos em OFX ou CSV.`);
+  await guardarDados(d); mostrarImportados(d);
+  toast(`${novos} lançamento(s) importado(s)` + (repetidos ? `, ${repetidos} repetido(s) ignorado(s)` : "") + (ignorados.length ? `. Não li: ${ignorados.join(", ")}` : "."));
+  irPara("painel");
+}
+$("#importar").onclick = () => $("#imp-input").click();
+$("#imp-input").onchange = async e => { const fs = [...e.target.files]; e.target.value = ""; await importarArquivos(fs); };
+$("#limpar-imp").onclick = async () => {
+  if (!confirm("Apagar os extratos importados neste aparelho? Os arquivos originais na nuvem não são apagados.")) return;
+  await apagarDados(); $("#limpar-imp").hidden = true; $("#exemplo").click(); toast("Dados importados apagados deste aparelho.");
+};
+// Arquivos recebidos pelo "Compartilhar" do Android ficam guardados pelo service worker até o app abrir.
+async function receberCompartilhados() {
+  if (!new URLSearchParams(location.search).has("compartilhado") || !("caches" in window)) return;
+  history.replaceState(null, "", location.pathname);
+  const c = await caches.open("gf-compartilhado"), reqs = await c.keys(), files = [];
+  for (const r of reqs) { const resp = await c.match(r); files.push(new File([await resp.blob()], decodeURIComponent(resp.headers.get("x-nome") || "extrato.ofx"))); await c.delete(r); }
+  if (files.length) await importarArquivos(files);
+}
+
 /* ---------- painel ---------- */
 const mesesDisp = () => [...new Set(lanc.map(l => l.mes))].sort();
 function resumo(m) {
@@ -417,17 +524,21 @@ function desenharRelatorio() {
   const top = r.ls.filter(l => l.valor < 0).sort((a, b) => a.valor - b.valor).slice(0, 8);
   $("#rel").innerHTML = `
     <div class="rh"><div><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#2f6f5e;font-weight:600">Relatório mensal</div><h2>${esc(usuario.nome)} · ${mesNome(m)}</h2></div>
-      <div style="text-align:right;font-size:12px;color:#5a6b66">Gerado em ${hoje}<br>${fonte === "pasta" ? "Fonte: " + esc($("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
+      <div style="text-align:right;font-size:12px;color:#5a6b66">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
     <div class="rk"><div><span>Entradas</span><b class="pos">${brl(r.ent)}</b></div><div><span>Saídas</span><b class="neg">${brl(r.sai)}</b></div><div><span>Saldo do mês</span><b class="${r.saldo < 0 ? "neg" : "pos"}">${brl(r.saldo)}</b></div></div>
     <h3 style="margin:0 0 10px;color:#16302b">Saídas por categoria</h3>
     ${r.cats.map(([c, v]) => `<div class="rb"><span>${esc(c)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><span class="num" style="text-align:right">${brl(v)}</span></div>`).join("")}
     <h3 style="margin:18px 0 6px;color:#16302b">Maiores saídas</h3>
     <table><tr><th>Data</th><th>Descrição</th><th class="r">Valor</th></tr>${top.map(l => `<tr><td class="num">${l.data.split("-").reverse().join("/")}</td><td>${esc(l.desc)}</td><td class="r num neg">${brl(l.valor)}</td></tr>`).join("")}</table>
     <div class="foot">Gerencial Familiar · ${r.ls.length} lançamentos considerados · valores conforme os arquivos da pasta do mês.</div>`;
-  $("#rel-dest").textContent = raiz && pastasMes[m] ? `Destino: ${raiz.name} / ${pastasMes[m].name} (a mesma pasta dos extratos do mês).` : raiz ? `Destino: ${raiz.name} (este mês não tem subpasta própria).` : "Destino: sem pasta com gravação liberada, o arquivo é baixado.";
+  $("#rel-dest").textContent = raiz && pastasMes[m] ? `Destino: ${raiz.name} / ${pastasMes[m].name} (a mesma pasta dos extratos do mês).` : raiz ? `Destino: ${raiz.name} (este mês não tem subpasta própria).` : movel() ? "No celular ou tablet, o arquivo abre a opção de salvar no Drive, em Arquivos ou de enviar direto." : "Destino: sem pasta com gravação liberada, o arquivo é baixado.";
+  requestAnimationFrame(encaixarRelatorio);
 }
 const nomeArq = ext => `Relatorio_${$("#mes-rel").value}_${new Date().toISOString().slice(0, 10)}.${ext}`;
-async function gerarCanvas() { return html2canvas($("#rel"), {scale: 2, backgroundColor: "#ffffff"}); }
+async function gerarCanvas() {
+  const rel = $("#rel"), t = rel.style.transform; rel.style.transform = "";
+  try { return await html2canvas(rel, {scale: 2, backgroundColor: "#ffffff"}); } finally { rel.style.transform = t; }
+}
 async function gerarBlob(tipo) {
   const c = await gerarCanvas();
   if (tipo === "png") return new Promise(res => c.toBlob(res, "image/png"));
@@ -446,7 +557,15 @@ async function gravarNaPasta(blob, nome) {
       return `Salvo em ${raiz.name}${alvo !== raiz ? " / " + alvo.name : ""} / ${nome}`;
     } catch (e) { /* cai no download */ }
   }
+  // Celular e tablet: a folha de compartilhar deixa salvar no Drive/Arquivos ou mandar direto.
+  if (movel()) {
+    try {
+      const f = new File([blob], nome, {type: blob.type});
+      if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f], title: nome}); return `${nome} pronto.`; }
+    } catch (e) { if (e.name === "AbortError") return "Operação cancelada."; }
+  }
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  if (movel()) return `${nome} salvo em Downloads.`;
   return `${nome} salvo em Downloads (escolha a pasta da nuvem para gravar direto nela).`;
 }
 async function salvar(tipo) {
@@ -464,14 +583,14 @@ async function compartilhar(canal) {
   // 1) Celular: abre a folha de compartilhar com o PDF anexado (WhatsApp, Gmail etc.)
   try {
     const b = await gerarBlob("pdf"), f = new File([b], nomeArq("pdf"), {type: "application/pdf"});
-    if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f], title: "Relatório financeiro", text: textoResumo()}); return; }
+    if (navigator.canShare && navigator.canShare({files: [f]})) { await navigator.share({files: [f], title: "Relatório financeiro", text: textoResumo()}); guiaMarcar("relatorio"); return; }
   } catch (e) { if (e.name === "AbortError") return; }
   // 2) Computador: mensagem com o resumo; o PDF salvo na pasta vai como anexo pelo usuário
   const txt = textoResumo();
   if (canal === "zap") {
     const n = $("#zap").value.replace(/\D/g, ""), num = n ? (n.length <= 11 ? "55" + n : n) : "";
     const a = document.createElement("a"); a.href = `https://wa.me/${num}?text=${encodeURIComponent(txt)}`; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove();
-    toast("WhatsApp aberto com o resumo. Anexe o PDF salvo na pasta.");
+    toast("WhatsApp aberto com o resumo. Anexe o PDF salvo na pasta."); guiaMarcar("relatorio");
   } else {
     const a = document.createElement("a"); a.href = `mailto:${encodeURIComponent($("#mail").value)}?subject=${encodeURIComponent("Relatório financeiro " + mesNome($("#mes-rel").value))}&body=${encodeURIComponent(txt)}`; document.body.appendChild(a); a.click(); a.remove();
     toast("Rascunho de e-mail aberto com o resumo. Anexe o PDF salvo na pasta.");
@@ -483,7 +602,7 @@ $("#b-mail").onclick = () => compartilhar("mail");
 /* ---------- geral ---------- */
 function atualizarTudo() {
   preencherMeses(); desenharPainel(); desenharArquivos(); desenharRelatorio();
-  $("#fonte-txt").textContent = fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : "Dados de exemplo (fictícios)";
+  $("#fonte-txt").textContent = fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : fonte === "importado" ? "Extratos importados neste aparelho" : "Dados de exemplo (fictícios)";
   desenharGuia();
 }
 $("#mes").onchange = desenharPainel; $("#busca").oninput = desenharPainel; $("#mes-rel").onchange = desenharRelatorio;

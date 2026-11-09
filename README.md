@@ -6,6 +6,7 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
 
 - **Login e assinatura** no Supabase: e-mail e senha, recuperação de senha por e-mail, 14 dias de teste a cada cadastro novo. Sem o Supabase configurado, o app roda em modo demonstração (login guardado só no navegador, conta `demo@gerencial.app` / `demo1234`).
 - **Pasta na nuvem**: o cliente escolhe a pasta sincronizada do Google Drive, OneDrive ou Dropbox no computador (Chrome ou Edge). O app lê as subpastas de mês (`Novembro2026`, `Nov 2026`, `2026-11`, `11-2026`) e importa arquivos OFX e CSV. A pasta fica lembrada para a próxima vez.
+- **Celular e tablet**: os extratos entram por **Importar extratos** (vários OFX/CSV de uma vez, do Drive, OneDrive, Dropbox ou Arquivos); o mês vem da data de cada lançamento, reimportar não duplica e os dados ficam guardados no aparelho. No Android, com o app instalado, dá para mandar o extrato pelo botão **Compartilhar** de outro app. Navegação na parte de baixo da tela, lançamentos em cartões e instalação como app (ícone na tela inicial).
 - **Relatório**: PDF (A4) ou PNG gravado na subpasta do mês. No celular, "Enviar" abre o compartilhamento com o PDF anexado. No computador, abre o WhatsApp ou o e-mail com o resumo do mês.
 - **Privacidade**: extratos e relatórios nunca saem da máquina do cliente. O servidor guarda só nome, e-mail e assinatura.
 
