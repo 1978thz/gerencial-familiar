@@ -47,6 +47,7 @@
       <button id="sair">Sair</button>
     </div>
     <nav class="tabs" id="tabs">
+      <button data-v="guia">Como usar</button>
       <button data-v="painel" class="on">Painel</button>
       <button data-v="pasta">Pasta na nuvem</button>
       <button data-v="relatorio">Relatório</button>
@@ -55,6 +56,103 @@
   </div></header>
 
   <main class="wrap">
+    <!-- COMO USAR -->
+    <section class="view" id="v-guia">
+      <div class="panel guia-topo">
+        <div>
+          <h2>Primeiros passos</h2>
+          <p class="muted small" style="margin:4px 0 0">Siga na ordem. Os itens se marcam sozinhos conforme você avança neste aparelho.</p>
+        </div>
+        <div class="prog"><div class="prog-n num" id="guia-n">0/5</div><div class="track"><div class="fill" id="guia-bar"></div></div></div>
+      </div>
+
+      <ol class="passos" id="passos">
+        <li data-p="aparelho">
+          <div class="p-head"><span class="p-ck"></span><h3>Use o computador, no Chrome ou no Edge</h3></div>
+          <p>O sistema lê e grava na pasta da nuvem pelo navegador. Isso funciona por completo no <b>Google Chrome</b> ou no <b>Microsoft Edge</b> do computador. Em outros navegadores ele só lê, e o relatório vai para Downloads. No celular, use o app para consultar e enviar o relatório.</p>
+          <p class="muted small" id="guia-nav"></p>
+          <p class="small">Dica: instale como aplicativo pelo ícone de instalar na barra de endereço do Chrome. Ele abre em janela própria e mais rápido.</p>
+        </li>
+        <li data-p="nuvem">
+          <div class="p-head"><span class="p-ck"></span><h3>Tenha a pasta da nuvem sincronizada no computador</h3></div>
+          <p>Instale o programa da sua nuvem (<b>Google Drive para computador</b>, <b>OneDrive</b> ou <b>Dropbox</b>). A pasta da nuvem passa a aparecer como uma pasta comum no computador, por exemplo <span class="num">G:\Meu Drive</span>. Assim, o que você salvar no celular ou em outro computador chega aqui sozinho.</p>
+          <label class="ck-manual"><input type="checkbox" data-manual="nuvem"> Já tenho a pasta da nuvem no computador</label>
+        </li>
+        <li data-p="estrutura">
+          <div class="p-head"><span class="p-ck"></span><h3>Organize uma subpasta para cada mês</h3></div>
+          <p>Crie uma pasta principal (por exemplo <b>Finanças da Família</b>) e, dentro dela, uma subpasta por mês. Salve os arquivos do mês <b>direto dentro da subpasta</b>, sem outras pastas no meio.</p>
+          <pre class="arvore">Finanças da Família/
+├── 2026-10/
+│   ├── extrato-banco-azul.ofx
+│   └── extrato-banco-verde.csv
+└── 2026-11/
+    ├── extrato-banco-azul.ofx
+    └── Relatorio_2026-11_...pdf   ← o sistema grava aqui</pre>
+          <p class="small">Nomes de mês aceitos: <span class="num">2026-11</span> (recomendado), <span class="num">11-2026</span>, <span class="num">Novembro2026</span> ou <span class="num">Nov 2026</span>. Arquivos soltos na pasta principal são ignorados.</p>
+          <label class="ck-manual"><input type="checkbox" data-manual="estrutura"> Já organizei as subpastas de mês</label>
+        </li>
+        <li data-p="pasta">
+          <div class="p-head"><span class="p-ck"></span><h3>Escolha a pasta principal no sistema</h3></div>
+          <p>Na aba <b>Pasta na nuvem</b>, clique em <b>Escolher a pasta sincronizada</b>, selecione a pasta principal (não a do mês) e permita <b>ver e editar</b> os arquivos. A lista mostra cada mês e quantos lançamentos foram lidos de cada arquivo.</p>
+          <p class="small">Nos próximos acessos, use <b>Reabrir a última pasta</b>: o navegador pede a permissão de novo, por segurança.</p>
+          <button class="pri" data-ir="pasta">Ir para Pasta na nuvem</button>
+        </li>
+        <li data-p="relatorio">
+          <div class="p-head"><span class="p-ck"></span><h3>Confira o painel e gere o relatório</h3></div>
+          <p>No <b>Painel</b>, escolha o mês e confira entradas, saídas, saldo e gastos por categoria. Na aba <b>Relatório</b>, clique em <b>Salvar PDF na pasta</b>: o arquivo é gravado na subpasta do mês, junto dos extratos. Depois use <b>Enviar por WhatsApp</b> ou <b>Enviar por e-mail</b>.</p>
+          <p class="small">No computador, o WhatsApp e o e-mail abrem com o resumo do mês escrito. Anexe o PDF que acabou de ser salvo. No celular, o PDF já vai anexado.</p>
+          <button class="pri" data-ir="relatorio">Ir para Relatório</button>
+        </li>
+      </ol>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3>Rotina de cada mês (5 minutos)</h3>
+          <ol class="rotina">
+            <li>No começo do mês, crie a subpasta do mês que terminou (ex.: <span class="num">2026-11</span>).</li>
+            <li>No app ou site de cada banco, exporte o extrato do mês inteiro em <b>OFX</b> e salve na subpasta.</li>
+            <li>Abra o sistema e clique em <b>Reabrir a última pasta</b>.</li>
+            <li>Confira o Painel, principalmente a categoria <b>Outros</b>.</li>
+            <li>Salve o PDF e envie para quem acompanha as contas.</li>
+          </ol>
+        </div>
+        <div class="panel">
+          <h3>Qual arquivo baixar do banco</h3>
+          <ul class="dicas">
+            <li><b>OFX (melhor opção).</b> Procure por "exportar extrato", "OFX" ou "Money/Quicken" no internet banking. Traz datas, valores e descrições sem erro.</li>
+            <li><b>CSV (planilha).</b> Funciona se a primeira linha tiver colunas com <b>Data</b> e <b>Valor</b> (e, de preferência, <b>Descrição</b> ou <b>Histórico</b>). Datas em <span class="num">dd/mm/aaaa</span>, saídas com sinal de menos.</li>
+            <li><b>PDF e fotos</b> ainda não são lidos. Eles ficam na lista como "leitura na versão comercial" e não entram nos totais.</li>
+            <li>Exporte sempre o <b>mês fechado</b> (do dia 1 ao último dia), para não repetir nem faltar lançamentos.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Para ter o melhor resultado</h3>
+        <ul class="dicas">
+          <li><b>Cartão de crédito: escolha um jeito só.</b> Se o extrato da conta já mostra o pagamento da fatura, não coloque também a fatura detalhada do cartão na mesma pasta. Se colocar os dois, o gasto do cartão é contado duas vezes. Para ver o detalhe por categoria, use a fatura detalhada e tire o pagamento da fatura do extrato.</li>
+          <li><b>Transferências entre contas da família</b> aparecem como saída em uma conta e entrada na outra. Entram nos totais de entradas e saídas, mas não mudam o saldo do mês.</li>
+          <li><b>Um arquivo por conta por mês.</b> Não deixe duas cópias do mesmo extrato (por exemplo, "extrato.ofx" e "extrato (1).ofx"): os lançamentos são somados duas vezes.</li>
+          <li><b>Categorias automáticas</b> vêm do texto do lançamento (mercado, escola, farmácia, posto, fatura...). O que não for reconhecido vai para <b>Outros</b>. Use a busca do Painel para conferir esses itens.</li>
+          <li><b>Seus dados ficam com você.</b> Extratos e relatórios são lidos e gravados só no seu computador e na sua nuvem. O servidor do sistema guarda apenas nome, e-mail e assinatura.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h3>Problemas comuns</h3>
+        <details><summary>Aparece "Dados de exemplo" mesmo depois de escolher a pasta</summary>
+          <p>Nenhum extrato foi encontrado. Confira se você escolheu a <b>pasta principal</b>, se as subpastas têm nome de mês (ex.: <span class="num">2026-11</span>) e se os arquivos estão em OFX ou CSV, direto dentro delas.</p></details>
+        <details><summary>Um arquivo aparece como "ignorado" ou com 0 lançamentos</summary>
+          <p>O formato não foi reconhecido. Prefira o OFX. Se for CSV, abra no Excel e confira se a primeira linha tem as colunas Data e Valor.</p></details>
+        <details><summary>O relatório foi para Downloads e não para a pasta</summary>
+          <p>O navegador não tem permissão de gravação. Use Chrome ou Edge no computador, clique em <b>Reabrir a última pasta</b> e permita <b>ver e editar</b>. Se escolheu "só leitura", escolha a pasta de novo.</p></details>
+        <details><summary>O botão "Escolher a pasta" não abre no celular</summary>
+          <p>Os celulares ainda não permitem que sites abram pastas inteiras. Faça a leitura no computador. No celular, use o app para consultar e enviar o relatório já gerado.</p></details>
+        <details><summary>Esqueci a senha ou aparece "Assinatura inativa"</summary>
+          <p>Na tela de entrada, digite o e-mail e clique em <b>Esqueci minha senha</b> para receber o link. Se aparecer "Assinatura inativa", o período de teste ou a assinatura terminou: fale com o suporte para renovar.</p></details>
+      </div>
+    </section>
+
     <!-- PAINEL -->
     <section class="view on" id="v-painel">
       <div class="row">

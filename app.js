@@ -183,6 +183,9 @@ function entrar() {
   restaurarPasta();
   $("#tab-admin").hidden = !usuario.admin;
   if (usuario.admin) carregarAdmin();
+  // No primeiro acesso deste usuário neste navegador, abre direto o guia.
+  if (!guiaGet().visto) { guiaMarcar("visto"); irPara("guia"); }
+  desenharGuia();
 }
 
 /* ---------- administração ---------- */
@@ -249,11 +252,42 @@ $("#adm-tab").onclick = e => {
 $("#adm-busca").oninput = desenharAdmin; $("#adm-filtro").onchange = desenharAdmin; $("#adm-atualizar").onclick = carregarAdmin;
 
 /* ---------- abas ---------- */
-$("#tabs").onclick = e => {
-  const b = e.target.closest("button"); if (!b) return;
-  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
-  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === "v-" + b.dataset.v));
-};
+function irPara(v) {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x.dataset.v === v));
+  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === "v-" + v));
+  window.scrollTo({top: 0});
+}
+$("#tabs").onclick = e => { const b = e.target.closest("button"); if (b) irPara(b.dataset.v); };
+
+/* ---------- como usar ---------- */
+// Checklist dos primeiros passos: marca sozinho o que dá para detectar e guarda o resto por usuário neste navegador.
+const guiaChave = () => "gf_guia_" + (usuario ? usuario.email : "");
+const guiaGet = () => store.get(guiaChave(), {});
+function guiaMarcar(k, v = true) { const g = guiaGet(); g[k] = v; store.set(guiaChave(), g); desenharGuia(); }
+const celular = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+function desenharGuia() {
+  if (!usuario) return;
+  const g = guiaGet(), temPasta = fonte === "pasta", temMeses = Object.keys(pastasMes).length > 0 || arquivosLista.length > 0;
+  const completo = !!window.showDirectoryPicker && !celular();
+  const feito = {
+    aparelho: completo,
+    nuvem: !!g.nuvem || temPasta,
+    estrutura: !!g.estrutura || temMeses,
+    pasta: temPasta,
+    relatorio: !!g.relatorio,
+  };
+  document.querySelectorAll("#passos > li").forEach(li => li.classList.toggle("feito", !!feito[li.dataset.p]));
+  document.querySelectorAll("#passos [data-manual]").forEach(c => { c.checked = !!feito[c.dataset.manual]; });
+  const n = Object.values(feito).filter(Boolean).length;
+  $("#guia-n").textContent = `${n}/5`; $("#guia-bar").style.width = (n / 5 * 100) + "%";
+  $("#guia-nav").textContent = completo
+    ? "Este navegador está pronto: lê e grava direto na pasta."
+    : celular()
+      ? "Você está no celular: aqui dá para consultar e enviar. Para ler a pasta, abra o sistema no computador."
+      : "Este navegador só consegue ler a pasta e baixar o relatório. Para gravar direto na pasta, abra no Chrome ou no Edge.";
+}
+$("#passos").onchange = e => { const c = e.target.closest("[data-manual]"); if (c) guiaMarcar(c.dataset.manual, c.checked); };
+$("#v-guia").onclick = e => { const b = e.target.closest("[data-ir]"); if (b) irPara(b.dataset.ir); };
 
 /* ---------- pasta ---------- */
 function salvarCfg() { if (usuario) store.set("gf_cfg_" + usuario.email, {link: $("#pasta-link").value, nuvem: document.querySelector("input[name=nuvem]:checked").value, zap: $("#zap").value, mail: $("#mail").value}); }
@@ -417,7 +451,7 @@ async function gravarNaPasta(blob, nome) {
 }
 async function salvar(tipo) {
   toast("Gerando o relatório...");
-  try { const b = await gerarBlob(tipo); toast(await gravarNaPasta(b, nomeArq(tipo))); }
+  try { const b = await gerarBlob(tipo); toast(await gravarNaPasta(b, nomeArq(tipo))); guiaMarcar("relatorio"); }
   catch (e) { toast("Não consegui gerar o arquivo: " + e.message); }
 }
 $("#b-pdf").onclick = () => salvar("pdf");
@@ -450,6 +484,7 @@ $("#b-mail").onclick = () => compartilhar("mail");
 function atualizarTudo() {
   preencherMeses(); desenharPainel(); desenharArquivos(); desenharRelatorio();
   $("#fonte-txt").textContent = fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : "Dados de exemplo (fictícios)";
+  desenharGuia();
 }
 $("#mes").onchange = desenharPainel; $("#busca").oninput = desenharPainel; $("#mes-rel").onchange = desenharRelatorio;
 

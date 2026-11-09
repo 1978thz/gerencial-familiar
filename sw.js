@@ -1,5 +1,5 @@
 // Deixa o app abrir rápido e instalável. Os dados financeiros nunca passam por aqui.
-const CACHE = "gerencial-v2";
+const CACHE = "gerencial-v3";
 const ARQS = ["./", "index.html", "styles.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon.svg",
   "vendor/supabase.min.js", "vendor/html2canvas.min.js", "vendor/jspdf.umd.min.js"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQS)).then(() => self.skipWaiting())));
