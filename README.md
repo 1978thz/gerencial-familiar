@@ -18,9 +18,12 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
 2. **Vercel** (vercel.com, plano gratuito): Add New > Project > importe este repositório do GitHub > Deploy. Não precisa de build.
 3. **Domínio** (opcional, ~R$ 40/ano no registro.br): aponte para a Vercel em Settings > Domains.
 
-## Liberar ou bloquear um cliente
+## Administração
 
-No Supabase, Table Editor > `assinaturas`: mude `status` (`teste`, `ativa`, `suspensa`, `cancelada`) e `valido_ate`. O app confere a cada login.
+- Rode também `supabase/admin.sql` no SQL Editor (uma vez). Ele cria a tabela `admins` com 1978.thz@gmail.com e as funções que só o administrador pode usar.
+- Entre no app com o e-mail de administrador (cadastrado e confirmado): aparece a aba **Administração**, com todos os clientes, data de cadastro, último login, situação (teste, ativa, vencida, suspensa, cancelada, e-mail não confirmado) e os botões para mudar status, validade ou somar 30 dias.
+- O administrador entra mesmo sem assinatura. Para incluir outro administrador: Table Editor > `admins` > Insert, com o e-mail dele.
+- Também dá para ajustar direto no Supabase, em Table Editor > `assinaturas`. O app confere a assinatura a cada login.
 
 ## Próximas etapas
 
@@ -35,5 +38,6 @@ No Supabase, Table Editor > `assinaturas`: mude `status` (`teste`, `ativa`, `sus
 | `index.html`, `styles.css`, `app.js` | o app |
 | `config.js` | endereço e chave pública do Supabase |
 | `supabase/schema.sql` | tabelas e regras de acesso do login |
+| `supabase/admin.sql` | administrador e funções da aba Administração |
 | `sw.js`, `manifest.webmanifest`, `icons/` | instalar como app e abrir rápido |
 | `vendor/` | bibliotecas de PDF/PNG e do Supabase, sem depender de CDN |

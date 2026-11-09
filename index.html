@@ -50,6 +50,7 @@
       <button data-v="painel" class="on">Painel</button>
       <button data-v="pasta">Pasta na nuvem</button>
       <button data-v="relatorio">Relatório</button>
+      <button data-v="admin" id="tab-admin" hidden>Administração</button>
     </nav>
   </div></header>
 
@@ -111,6 +112,24 @@
         <div class="muted small" id="rel-dest">Destino: sem pasta escolhida, o arquivo é baixado.</div>
       </div>
       <div class="rel-out"><div id="rel"></div></div>
+    </section>
+
+    <!-- ADMINISTRAÇÃO (só aparece para administradores; o servidor confere a permissão) -->
+    <section class="view" id="v-admin">
+      <div class="kpis" id="adm-kpis"></div>
+      <div class="panel">
+        <div class="row">
+          <label class="f">Buscar cliente<input id="adm-busca" type="search" placeholder="nome ou e-mail"></label>
+          <label class="f">Situação<select id="adm-filtro">
+            <option value="">Todos</option><option value="teste">Em teste</option><option value="ativa">Ativas</option>
+            <option value="vencida">Vencidas</option><option value="suspensa">Suspensas</option><option value="cancelada">Canceladas</option>
+            <option value="pendente">E-mail não confirmado</option>
+          </select></label>
+          <button class="auto" id="adm-atualizar">Atualizar lista</button>
+        </div>
+        <div class="tbl"><table id="adm-tab"></table></div>
+        <div class="muted small">Altere a situação ou a validade e clique em Salvar. "+30 dias" ativa o cliente e soma 30 dias à validade (a partir de hoje, se já venceu).</div>
+      </div>
     </section>
   </main>
 </div>

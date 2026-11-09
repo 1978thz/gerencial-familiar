@@ -155,9 +155,10 @@ async function aposLogin(sessao) {
   const u = sessao.user;
   const {data: perfil} = await sb.from("perfis").select("nome").eq("id", u.id).maybeSingle();
   const {data: ass} = await sb.from("assinaturas").select("status, valido_ate").eq("user_id", u.id).maybeSingle();
+  const {data: admin} = await sb.rpc("sou_admin");
   const hoje = new Date().toISOString().slice(0, 10);
-  usuario = {email: u.email, nome: (perfil && perfil.nome) || (u.user_metadata && u.user_metadata.nome) || u.email};
-  if (!ass || !["ativa", "teste"].includes(ass.status) || (ass.valido_ate && ass.valido_ate < hoje)) {
+  usuario = {email: u.email, nome: (perfil && perfil.nome) || (u.user_metadata && u.user_metadata.nome) || u.email, admin: admin === true};
+  if (!usuario.admin && (!ass ||!["ativa", "teste"].includes(ass.status) || (ass.valido_ate && ass.valido_ate < hoje))) {
     $("#login").hidden = true; $("#app").hidden = true; $("#bloqueio").hidden = false; $("#bl-email").textContent = u.email; return;
   }
   entrar();
@@ -180,7 +181,72 @@ function entrar() {
   if (cfg.nuvem) { const r = document.querySelector(`input[name=nuvem][value=${cfg.nuvem}]`); if (r) r.checked = true; }
   atualizarTudo();
   restaurarPasta();
+  $("#tab-admin").hidden = !usuario.admin;
+  if (usuario.admin) carregarAdmin();
 }
+
+/* ---------- administração ---------- */
+// A tela só aparece para administradores, mas quem garante a permissão é o servidor:
+// as funções admin_* recusam qualquer usuário que não esteja na tabela admins.
+let admLista = [];
+const dataBR = d => d ? new Date(d.length === 10 ? d + "T12:00:00" : d).toLocaleDateString("pt-BR") : "—";
+const dataHoraBR = d => d ? new Date(d).toLocaleString("pt-BR", {dateStyle: "short", timeStyle: "short"}) : "nunca";
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+function situacao(c) {
+  if (!c.confirmado_em) return "pendente";
+  if (!c.status) return "sem assinatura";
+  if (["teste", "ativa"].includes(c.status) && c.valido_ate && c.valido_ate < hojeISO()) return "vencida";
+  return c.status;
+}
+const ROTULO = {teste: "Em teste", ativa: "Ativa", suspensa: "Suspensa", cancelada: "Cancelada", vencida: "Vencida", pendente: "E-mail não confirmado", "sem assinatura": "Sem assinatura"};
+async function carregarAdmin() {
+  $("#adm-tab").innerHTML = `<tr><td class="muted">Carregando clientes...</td></tr>`;
+  const {data, error} = await sb.rpc("admin_clientes");
+  if (error) { $("#adm-tab").innerHTML = `<tr><td class="neg">Não consegui carregar: ${esc(error.message)}</td></tr>`; return; }
+  admLista = data || [];
+  desenharAdmin();
+}
+function desenharAdmin() {
+  const sits = admLista.map(situacao), conta = s => sits.filter(x => x === s).length;
+  $("#adm-kpis").innerHTML = [["Clientes", admLista.length], ["Em teste", conta("teste")], ["Ativas", conta("ativa")],
+    ["Vencidas", conta("vencida")], ["Suspensas/canceladas", conta("suspensa") + conta("cancelada")], ["Sem confirmar e-mail", conta("pendente")]]
+    .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+  const q = $("#adm-busca").value.trim().toLowerCase(), f = $("#adm-filtro").value;
+  const linhas = admLista.filter((c, i) => (!q || (c.email + " " + (c.nome || "")).toLowerCase().includes(q)) && (!f || sits[i] === f));
+  if (!linhas.length) { $("#adm-tab").innerHTML = `<tr><td class="muted">Nenhum cliente encontrado.</td></tr>`; return; }
+  $("#adm-tab").innerHTML = `<tr><th>Cliente</th><th>Cadastro</th><th>Último login</th><th>Situação</th><th>Status</th><th>Válido até</th><th></th></tr>` +
+    linhas.map(c => {
+      const s = situacao(c), alerta = ["vencida", "suspensa", "cancelada", "pendente", "sem assinatura"].includes(s);
+      return `<tr data-id="${esc(c.user_id)}">
+        <td><b>${esc(c.nome || "—")}</b>${c.admin ? ' <span class="tag">adm</span>' : ""}<div class="muted small">${esc(c.email)}</div></td>
+        <td class="num small">${dataBR(c.criado_em)}</td>
+        <td class="num small">${dataHoraBR(c.ultimo_login)}</td>
+        <td><span class="tag${alerta ? " warn" : ""}">${ROTULO[s] || s}</span></td>
+        <td><select class="adm-status">${["teste", "ativa", "suspensa", "cancelada"].map(o => `<option value="${o}"${(c.status || "teste") === o ? " selected" : ""}>${ROTULO[o]}</option>`).join("")}</select></td>
+        <td><input class="adm-validade" type="date" value="${esc(c.valido_ate || "")}"></td>
+        <td style="white-space:nowrap"><button class="pri adm-salvar">Salvar</button> <button class="adm-30">+30 dias</button></td>
+      </tr>`;
+    }).join("");
+}
+async function salvarAssinatura(id, status, validade, botao) {
+  botao.disabled = true;
+  const {error} = await sb.rpc("admin_atualizar_assinatura", {p_user: id, p_status: status, p_valido_ate: validade || null});
+  botao.disabled = false;
+  if (error) return toast("Não consegui salvar: " + error.message);
+  toast("Assinatura atualizada.");
+  carregarAdmin();
+}
+$("#adm-tab").onclick = e => {
+  const tr = e.target.closest("tr[data-id]"); if (!tr) return;
+  const id = tr.dataset.id;
+  if (e.target.closest(".adm-salvar")) salvarAssinatura(id, tr.querySelector(".adm-status").value, tr.querySelector(".adm-validade").value, e.target);
+  if (e.target.closest(".adm-30")) {
+    const atual = tr.querySelector(".adm-validade").value, base = atual && atual > hojeISO() ? atual : hojeISO();
+    const d = new Date(base + "T12:00:00"); d.setDate(d.getDate() + 30);
+    salvarAssinatura(id, "ativa", d.toISOString().slice(0, 10), e.target);
+  }
+};
+$("#adm-busca").oninput = desenharAdmin; $("#adm-filtro").onchange = desenharAdmin; $("#adm-atualizar").onclick = carregarAdmin;
 
 /* ---------- abas ---------- */
 $("#tabs").onclick = e => {
