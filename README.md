@@ -49,3 +49,9 @@ App web (instalável no computador e no celular) que lê os extratos de cada mê
 | `supabase/admin.sql` | administrador e funções da aba Administração |
 | `sw.js`, `manifest.webmanifest`, `icons/` | instalar como app e abrir rápido |
 | `vendor/` | bibliotecas de PDF/PNG e do Supabase, sem depender de CDN |
+
+## Segurança
+- Depois do `schema.sql` e do `admin.sql`, rode também `supabase/seguranca.sql` no SQL Editor (limite do nome, assinatura decidida no servidor).
+- Testes das proteções: `tests/seguranca.mjs` (instruções no topo do arquivo).
+- `vercel.json` traz os cabeçalhos de segurança (CSP). Se mudar o script embutido no `index.html`, atualize o hash `sha256-` da CSP.
+- `.vercelignore` impede que `supabase/`, `tests/` e este README sejam publicados no site.
