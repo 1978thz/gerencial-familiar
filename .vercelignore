@@ -1,0 +1,5 @@
+# Não publicar no site: scripts do banco, documentação e testes.
+supabase/
+tests/
+README.md
+.gitignore

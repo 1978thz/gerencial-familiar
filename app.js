@@ -98,6 +98,7 @@ async function garantirDemo() {
   return us;
 }
 let modoCriar = false, modoNovaSenha = false;
+const SENHA_MIN = 8;
 const msg = (err, ok) => { $("#lg-err").textContent = err || ""; $("#lg-ok").textContent = ok || ""; };
 $("#lg-alt").onclick = () => {
   modoCriar = !modoCriar;
@@ -116,11 +117,14 @@ $("#lg-esqueci").onclick = async () => {
 $("#f-login").addEventListener("submit", async e => {
   e.preventDefault(); msg();
   if (modoNovaSenha) {
+    if ($("#lg-senha").value.length < SENHA_MIN) return msg(`A senha precisa de pelo menos ${SENHA_MIN} caracteres.`);
     const {error} = await sb.auth.updateUser({password: $("#lg-senha").value});
     return error ? msg(traduz(error.message)) : (msg("", "Senha alterada. Entrando..."), setTimeout(() => location.reload(), 1200));
   }
-  const email = $("#lg-email").value.trim().toLowerCase(), senha = $("#lg-senha").value, nome = $("#lg-nome").value.trim() || "Minha família";
-  if (senha.length < 6) return msg("A senha precisa de pelo menos 6 caracteres.");
+  const email = $("#lg-email").value.trim().toLowerCase(), senha = $("#lg-senha").value, nome = ($("#lg-nome").value.trim() || "Minha família").slice(0, 100);
+  // Senhas novas: mínimo de 8. No "Entrar" não bloqueia, para quem já tem senha antiga de 6.
+  if (modoCriar && senha.length < SENHA_MIN) return msg(`A senha precisa de pelo menos ${SENHA_MIN} caracteres.`);
+  if (!senha) return msg("Digite sua senha.");
   $("#lg-btn").disabled = true;
   try {
     if (DEMO) {
@@ -154,11 +158,17 @@ function traduz(m) {
 async function aposLogin(sessao) {
   const u = sessao.user;
   const {data: perfil} = await sb.from("perfis").select("nome").eq("id", u.id).maybeSingle();
-  const {data: ass} = await sb.from("assinaturas").select("status, valido_ate").eq("user_id", u.id).maybeSingle();
   const {data: admin} = await sb.rpc("sou_admin");
-  const hoje = new Date().toISOString().slice(0, 10);
+  // A decisão de liberar vem do servidor (função assinatura_ativa), com a data do servidor, não do aparelho.
+  let {data: ativa, error: errAss} = await sb.rpc("assinatura_ativa");
+  if (errAss && /PGRST202|Could not find the function/i.test((errAss.code || "") + " " + (errAss.message || ""))) {
+    // Enquanto o supabase/seguranca.sql não roda no banco: regra antiga, para ninguém ficar bloqueado.
+    const {data: ass} = await sb.from("assinaturas").select("status, valido_ate").eq("user_id", u.id).maybeSingle();
+    const hoje = new Date().toISOString().slice(0, 10);
+    ativa = !!ass && ["ativa", "teste"].includes(ass.status) && !(ass.valido_ate && ass.valido_ate < hoje); errAss = null;
+  }
   usuario = {email: u.email, nome: (perfil && perfil.nome) || (u.user_metadata && u.user_metadata.nome) || u.email, admin: admin === true};
-  if (!usuario.admin && (!ass ||!["ativa", "teste"].includes(ass.status) || (ass.valido_ate && ass.valido_ate < hoje))) {
+  if (!usuario.admin && (errAss || ativa !== true)) {
     $("#login").hidden = true; $("#app").hidden = true; $("#bloqueio").hidden = false; $("#bl-email").textContent = u.email; return;
   }
   entrar();
