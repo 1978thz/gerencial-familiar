@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Gerencial Familiar</title>
-<meta name="theme-color" content="#2f6f5e">
+<meta name="theme-color" content="#006747">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Gerencial">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
 <script>
 // Volta do login da nuvem (Google/Microsoft/Dropbox): guarda a resposta e limpa o endereço
@@ -33,7 +33,7 @@
 <body>
 <div id="login" class="wrap">
   <div class="login-box">
-    <div class="brand"><div class="brand-mark">G</div><div><h1>Gerencial Familiar</h1><div class="muted small">Contas da casa lidas direto da sua pasta na nuvem</div></div></div>
+    <div class="brand"><img class="brand-mark" src="icons/thz-selo.png" alt="THZ"><div><h1>Gerencial Familiar</h1><div class="muted small">Contas da casa lidas direto da sua pasta na nuvem</div></div></div>
     <form class="login-card" id="f-login" autocomplete="on">
       <h2 id="lg-title">Entrar</h2>
       <label class="f" id="lg-nome-wrap" hidden>Nome da família<input id="lg-nome" type="text" placeholder="Ex.: Família Souza"></label>
@@ -45,6 +45,7 @@
       <button type="button" class="link" id="lg-esqueci">Esqueci minha senha</button>
       <div class="ok" id="lg-ok"></div>
     </form>
+    <p class="by-thz" style="margin:4px 0 0">Um sistema <b>THZ Gestão de Projetos Especiais</b></p>
     <p class="muted small" style="text-align:center;margin:12px 0 0"><a href="privacidade.html">Política de Privacidade</a></p>
     <div class="note" id="demo-nota" hidden>Modo demonstração: o servidor de login ainda não foi configurado. Entre com demo@gerencial.app / demo1234. O cadastro fica só neste navegador.</div>
   </div>
@@ -62,7 +63,7 @@
   <div class="banner" id="demo-banner" hidden>Modo demonstração: login local, sem servidor.</div>
   <header class="top"><div class="wrap">
     <div class="top-row">
-      <div class="brand"><div class="brand-mark">G</div><div><h1 id="fam">Família</h1><div class="muted small" id="fonte-txt">Dados de exemplo</div></div></div>
+      <div class="brand"><img class="brand-mark" src="icons/thz-selo.png" alt="THZ"><div><h1 id="fam">Família</h1><div class="muted small" id="fonte-txt">Dados de exemplo</div></div></div>
       <div class="top-acoes"><button id="instalar" hidden>Instalar app</button><button id="sair">Sair</button></div>
     </div>
     <nav class="tabs" id="tabs">

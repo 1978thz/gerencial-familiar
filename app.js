@@ -558,14 +558,14 @@ function desenharRelatorio() {
   const r = resumo(m), max = r.cats[0] ? r.cats[0][1] : 1, hoje = new Date().toLocaleDateString("pt-BR");
   const top = r.ls.filter(l => l.valor < 0).sort((a, b) => a.valor - b.valor).slice(0, 8);
   $("#rel").innerHTML = `
-    <div class="rh"><div><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#2f6f5e;font-weight:600">Relatório mensal</div><h2>${esc(usuario.nome)} · ${mesNome(m)}</h2></div>
-      <div style="text-align:right;font-size:12px;color:#5a6b66">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : fonte === "nuvem" ? $("#pasta-nome").textContent.split(" · ").slice(0, 2).join(" · ") : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
+    <div class="rh"><div style="display:flex;gap:12px;align-items:center"><img src="icons/thz-selo.png" alt="THZ" style="width:44px;height:44px;border-radius:50%"><div><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#006747;font-weight:600">Relatório mensal</div><h2>${esc(usuario.nome)} · ${mesNome(m)}</h2></div></div>
+      <div style="text-align:right;font-size:12px;color:#56665e">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : fonte === "nuvem" ? $("#pasta-nome").textContent.split(" · ").slice(0, 2).join(" · ") : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
     <div class="rk"><div><span>Entradas</span><b class="pos">${brl(r.ent)}</b></div><div><span>Saídas</span><b class="neg">${brl(r.sai)}</b></div><div><span>Saldo do mês</span><b class="${r.saldo < 0 ? "neg" : "pos"}">${brl(r.saldo)}</b></div></div>
-    <h3 style="margin:0 0 10px;color:#16302b">Saídas por categoria</h3>
+    <h3 style="margin:0 0 10px;color:#0d1210">Saídas por categoria</h3>
     ${r.cats.map(([c, v]) => `<div class="rb"><span>${esc(c)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><span class="num" style="text-align:right">${brl(v)}</span></div>`).join("")}
-    <h3 style="margin:18px 0 6px;color:#16302b">Maiores saídas</h3>
+    <h3 style="margin:18px 0 6px;color:#0d1210">Maiores saídas</h3>
     <table><tr><th>Data</th><th>Descrição</th><th class="r">Valor</th></tr>${top.map(l => `<tr><td class="num">${l.data.split("-").reverse().join("/")}</td><td>${esc(l.desc)}</td><td class="r num neg">${brl(l.valor)}</td></tr>`).join("")}</table>
-    <div class="foot">Gerencial Familiar · ${r.ls.length} lançamentos considerados · valores conforme os arquivos da pasta do mês.</div>`;
+    <div class="foot">Gerencial Familiar, um sistema THZ Gestão de Projetos Especiais · ${r.ls.length} lançamentos considerados · valores conforme os arquivos da pasta do mês.</div>`;
   $("#rel-dest").textContent = raiz && pastasMes[m] ? `Destino: ${raiz.name} / ${pastasMes[m].name} (a mesma pasta dos extratos do mês).` : raiz ? `Destino: ${raiz.name} (este mês não tem subpasta própria).` : movel() ? "No celular ou tablet, o arquivo abre a opção de salvar no Drive, em Arquivos ou de enviar direto." : "Destino: sem pasta com gravação liberada, o arquivo é baixado.";
   requestAnimationFrame(encaixarRelatorio);
 }
