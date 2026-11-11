@@ -172,7 +172,7 @@
           <ul class="dicas">
             <li><b>OFX (melhor opção).</b> Procure por "exportar extrato", "OFX" ou "Money/Quicken" no internet banking. Traz datas, valores e descrições sem erro.</li>
             <li><b>CSV (planilha).</b> Funciona se a primeira linha tiver colunas com <b>Data</b> e <b>Valor</b> (e, de preferência, <b>Descrição</b> ou <b>Histórico</b>). Datas em <span class="num">dd/mm/aaaa</span>, saídas com sinal de menos.</li>
-            <li><b>PDF e fotos</b> ainda não são lidos. Eles ficam na lista como "leitura na versão comercial" e não entram nos totais.</li>
+            <li><b>PDF do banco</b> também é lido: extratos de conta e faturas de cartão. Confira os lançamentos depois de importar. PDF escaneado e fotos não têm texto e não são lidos.</li>
             <li>Exporte sempre o <b>mês fechado</b> (do dia 1 ao último dia), para não repetir nem faltar lançamentos.</li>
           </ul>
         </div>
@@ -192,7 +192,7 @@
       <div class="panel">
         <h3>Problemas comuns</h3>
         <details><summary>Aparece "Dados de exemplo" mesmo depois de escolher a pasta</summary>
-          <p>Nenhum extrato foi encontrado. Confira se você escolheu a <b>pasta principal</b>, se as subpastas têm nome de mês (ex.: <span class="num">2026-11</span>) e se os arquivos estão em OFX ou CSV, direto dentro delas.</p></details>
+          <p>Nenhum extrato foi encontrado. Confira se você escolheu a <b>pasta principal</b>, se as subpastas têm nome de mês (ex.: <span class="num">2026-11</span>) e se os arquivos estão em OFX, CSV ou PDF do banco, direto dentro delas.</p></details>
         <details><summary>Um arquivo aparece como "ignorado" ou com 0 lançamentos</summary>
           <p>O formato não foi reconhecido. Prefira o OFX. Se for CSV, abra no Excel e confira se a primeira linha tem as colunas Data e Valor.</p></details>
         <details><summary>O relatório foi para Downloads e não para a pasta</summary>
@@ -200,7 +200,7 @@
         <details><summary>No celular ou tablet não aparece "Escolher a pasta sincronizada"</summary>
           <p>Ela é só para o computador. No celular e no tablet, use <b>Conectar minha nuvem</b> na aba Extratos: você entra na conta do Google Drive, OneDrive ou Dropbox e escolhe a pasta uma vez.</p></details>
         <details><summary>Conectei a nuvem, mas aparece "Nenhum extrato"</summary>
-          <p>Toque em <b>Trocar pasta</b> e escolha a <b>pasta principal</b>, a que tem as subpastas de mês. Os arquivos precisam ser OFX ou CSV. Se a pasta só tem extratos soltos, sem subpastas, o mês é identificado pela data de cada lançamento.</p></details>
+          <p>Toque em <b>Trocar pasta</b> e escolha a <b>pasta principal</b>, a que tem as subpastas de mês. Os arquivos precisam ser OFX, CSV ou PDF do banco. Se a pasta só tem extratos soltos, sem subpastas, o mês é identificado pela data de cada lançamento.</p></details>
         <details><summary>O Google Drive pede para entrar de novo</summary>
           <p>Por segurança, o Google libera o acesso por cerca de 1 hora a cada vez. Ao abrir o sistema depois disso, toque em <b>Atualizar</b>: a confirmação é rápida e normalmente não pede senha. OneDrive e Dropbox renovam sozinhos.</p></details>
         <details><summary>Quero tirar o acesso do sistema à minha nuvem</summary>
@@ -267,7 +267,7 @@
       </dialog>
       <div class="panel" id="imp-panel">
         <h2>Ou importe arquivos avulsos</h2>
-        <p class="muted small" style="margin:0">Escolha os arquivos <b>OFX</b> ou <b>CSV</b> baixados do banco: do Google Drive, OneDrive, Dropbox ou da pasta Downloads. O mês é identificado pela data de cada lançamento. Importar o mesmo arquivo de novo atualiza, sem duplicar. Os dados ficam guardados só neste aparelho.</p>
+        <p class="muted small" style="margin:0">Escolha os arquivos <b>OFX</b>, <b>CSV</b> ou <b>PDF</b> baixados do banco: do Google Drive, OneDrive, Dropbox ou da pasta Downloads. O mês é identificado pela data de cada lançamento. Importar o mesmo arquivo de novo atualiza, sem duplicar. Os dados ficam guardados só neste aparelho.</p>
         <div class="row">
           <button class="pri auto" id="importar">Escolher arquivos do banco</button>
           <button class="auto" id="limpar-imp" hidden>Apagar dados importados</button>
@@ -277,7 +277,7 @@
       </div>
       <div class="panel" id="pasta-panel">
         <h2>Pasta da nuvem no computador</h2>
-        <p class="muted small so-pc" style="margin:0">Crie uma subpasta por mês (por exemplo <span class="num">Novembro2026</span> ou <span class="num">2026-11</span>) e salve nela extratos e faturas em OFX ou CSV. O sistema lê cada mês e grava o relatório na mesma subpasta.</p>
+        <p class="muted small so-pc" style="margin:0">Crie uma subpasta por mês (por exemplo <span class="num">Novembro2026</span> ou <span class="num">2026-11</span>) e salve nela extratos e faturas em OFX, CSV ou PDF. O sistema lê cada mês e grava o relatório na mesma subpasta.</p>
         <div class="cloud so-pc" id="cloud">
           <label><input type="radio" name="nuvem" value="gdrive" checked>Google Drive</label>
           <label><input type="radio" name="nuvem" value="onedrive">OneDrive</label>
@@ -346,6 +346,7 @@
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
+<script src="leitor-pdf.js"></script>
 <script src="nuvem.js"></script>
 </body>
 </html>
