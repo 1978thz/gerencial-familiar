@@ -20,7 +20,8 @@ const REGRAS = [
   ["Dívidas e cartão", /fatura|empr[eé]st|financ|parcela|cons[oó]rcio|juros|iof/i],
   ["Lazer", /restaur|ifood|cinema|netflix|spotify|bar |lanch|viagem/i],
 ];
-const categoria = (desc, v) => v > 0 ? "Entrada" : (REGRAS.find(([, r]) => r.test(desc)) || ["Outros"])[0];
+const PROLAB = /pr[oó][\s-]?labore|distribui[cç][aã]o de lucro|retirada de s[oó]cio|aporte de s[oó]cio/i;
+const categoria = (desc, v) => PROLAB.test(desc) ? "Pró-labore e lucros" : v > 0 ? "Entrada" : (REGRAS.find(([, r]) => r.test(desc)) || ["Outros"])[0];
 
 /* ---------- dados de exemplo (fictícios) ---------- */
 function exemplo() {
@@ -81,6 +82,24 @@ function lerCSV(txt, mes, arq) {
 
 /* ---------- estado ---------- */
 let usuario = null, lanc = exemplo(), raiz = null, pastasMes = {}, fonte = "exemplo", arquivosLista = [];
+
+/* ---------- perfis: pessoa física + até 3 empresas no mesmo login ---------- */
+// Cada perfil tem extratos, pasta, nuvem e análise próprios. "todos" é a visão consolidada.
+// A pessoa física usa as chaves antigas (só o e-mail), então os dados que já existiam continuam nela.
+let perfilAtual = "pf";
+const MAX_PJ = 3;
+const empresas = () => store.get("gf_empresas_" + usuario.email, []).filter(e => e && e.nome);
+const perfis = () => [{id: "pf", nome: "Pessoa física", tipo: "PF"}, ...empresas().map(e => ({...e, tipo: "PJ"}))];
+const perfilInfo = id => perfis().find(p => p.id === id) || {id, nome: "Consolidado", tipo: "todos"};
+const escopo = (id = perfilAtual) => usuario.email + (id === "pf" ? "" : "#" + id);
+const consolidado = () => perfilAtual === "todos";
+const soDig = s => String(s || "").replace(/\D/g, "");
+function cnpjValido(c) {
+  c = soDig(c); if (c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
+  const dv = n => { let s = 0, p = n - 7; for (let i = 0; i < n; i++) { s += +c[i] * p--; if (p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
+  return dv(12) === +c[12] && dv(13) === +c[13];
+}
+const cnpjFmt = c => soDig(c).replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 
 /* ---------- login ---------- */
 // Com Supabase configurado (config.js), o login é no servidor e o acesso depende de assinatura ativa.
@@ -174,17 +193,11 @@ function entrar() {
   $("#login").hidden = true; $("#bloqueio").hidden = true; $("#app").hidden = false;
   $("#demo-banner").hidden = !DEMO;
   $("#fam").textContent = usuario.nome;
-  const cfg = store.get("gf_cfg_" + usuario.email, {});
-  if (cfg.link) $("#pasta-link").value = cfg.link;
-  if (cfg.zap) $("#zap").value = cfg.zap;
-  if (cfg.mail) $("#mail").value = cfg.mail;
-  if (cfg.nuvem) { const r = document.querySelector(`input[name=nuvem][value=${cfg.nuvem}]`); if (r) r.checked = true; }
-  atualizarTudo();
+  const salvo = store.get("gf_perfil_" + usuario.email, "pf");
+  perfilAtual = salvo === "todos" || perfis().some(p => p.id === salvo) ? salvo : "pf";
   ajustarAparelho();
   (async () => {
-    const d = await dadosGuardados(); if (d && d.lanc && d.lanc.length) mostrarImportados(d);
-    if (window.GFNuvem) await window.GFNuvem.iniciar();
-    if (podePasta()) await restaurarPasta();
+    await abrirPerfil();
     await receberCompartilhados();
   })();
   $("#tab-admin").hidden = !usuario.admin;
@@ -196,6 +209,109 @@ function entrar() {
   if (ir && document.getElementById("v-" + ir)) { irPara(ir); history.replaceState(null, "", location.pathname + location.search.replace(/[?&]ir=[^&]*/, "").replace(/^&/, "?")); }
   desenharGuia();
 }
+
+// Carrega o perfil escolhido (ou monta o consolidado) do zero.
+function carregarCfg() {
+  const cfg = consolidado() ? {} : store.get("gf_cfg_" + escopo(), {});
+  $("#pasta-link").value = cfg.link || ""; $("#zap").value = cfg.zap || ""; $("#mail").value = cfg.mail || "";
+  const r = document.querySelector(`input[name=nuvem][value=${cfg.nuvem || "drive"}]`); if (r) r.checked = true;
+}
+async function abrirPerfil() {
+  lanc = exemplo(); fonte = "exemplo"; raiz = null; pastasMes = {}; arquivosLista = [];
+  $("#pasta-nome").textContent = "Nenhuma pasta escolhida"; $("#limpar-imp").hidden = true; $("#reabrir").hidden = true;
+  $("#arquivos").innerHTML = "";
+  carregarCfg(); desenharPerfis();
+  if (consolidado()) return montarConsolidado();
+  atualizarTudo();
+  const d = await dadosGuardados(); if (d && d.lanc && d.lanc.length) mostrarImportados(d);
+  if (window.GFNuvem) await window.GFNuvem.iniciar();
+  if (podePasta()) await restaurarPasta();
+}
+async function trocarPerfil(id) {
+  if (id === perfilAtual) return;
+  perfilAtual = id; store.set("gf_perfil_" + usuario.email, id);
+  await abrirPerfil();
+  toast(consolidado() ? "Visão consolidada: pessoa física e empresas juntas." : `Perfil: ${perfilInfo(id).nome}`);
+}
+function desenharPerfis() {
+  const ps = perfis(), sel = $("#perfil");
+  sel.innerHTML = ps.map(p => `<option value="${p.id}">${p.tipo === "PF" ? "Pessoa física" : "Empresa · " + esc(p.nome)}</option>`).join("")
+    + (ps.length > 1 ? `<option value="todos">Consolidado (PF + empresas)</option>` : "");
+  sel.value = perfilAtual;
+  const p = perfilInfo(perfilAtual);
+  $("#perfil-sub").textContent = p.tipo === "PJ" ? "CNPJ " + cnpjFmt(p.cnpj) : p.tipo === "PF" ? usuario.nome : `${ps.length - 1} empresa(s) + pessoa física`;
+  document.body.classList.toggle("modo-todos", consolidado());
+  $("#perfil-aviso").innerHTML = p.tipo === "PJ" ? `Extratos da empresa <b>${esc(p.nome)}</b> (CNPJ ${cnpjFmt(p.cnpj)}). Para outra conta, troque o perfil no topo.` : `Extratos da <b>pessoa física</b>. Para os extratos de uma empresa, troque o perfil no topo${empresas().length ? "" : " (cadastre em Minhas empresas)"}.`;
+}
+$("#perfil").onchange = e => trocarPerfil(e.target.value);
+
+// Fotografia dos lançamentos de cada perfil, guardada no aparelho, para a visão consolidada.
+const chaveSnap = id => "snap:" + escopo(id);
+const guardarSnap = () => { if (!consolidado() && fonte !== "exemplo") idb("readwrite", st => st.put({lanc, em: Date.now()}, chaveSnap(perfilAtual))).catch(() => {}); };
+// Pares PF x empresa com o mesmo valor (sinais opostos) em até 3 dias: pró-labore, retirada ou aporte.
+// No consolidado eles não contam como entrada nem saída, para não somar o mesmo dinheiro duas vezes.
+function marcarEntrePerfis(ls) {
+  const dia = d => Date.parse(d) / 864e5, usados = new Set();
+  const cand = ls.map((l, i) => ({l, i})).filter(x => x.l.valor < 0).sort((a, b) => a.l.data.localeCompare(b.l.data));
+  for (const s of cand) {
+    const e = ls.findIndex((l, j) => !usados.has(j) && l.valor > 0 && l.perfil !== s.l.perfil && (l.perfil === "pf" || s.l.perfil === "pf")
+      && Math.abs(l.valor + s.l.valor) < 0.005 && Math.abs(dia(l.data) - dia(s.l.data)) <= 3);
+    if (e < 0) continue;
+    usados.add(e); usados.add(s.i); ls[e].entre = ls[s.i].entre = true;
+  }
+  return ls;
+}
+async function montarConsolidado() {
+  const todos = [];
+  for (const p of perfis()) {
+    const s = await idb("readonly", st => st.get(chaveSnap(p.id))).catch(() => null);
+    if (s && s.lanc) todos.push(...s.lanc.map(l => ({...l, perfil: p.id})));
+  }
+  lanc = marcarEntrePerfis(todos); fonte = "consolidado"; arquivosLista = [];
+  $("#pasta-nome").textContent = "Visão consolidada";
+  atualizarTudo();
+  if (!todos.length) toast("Ainda não há extratos nos perfis. Escolha a pessoa física ou uma empresa e importe os extratos.");
+}
+
+/* ---------- empresas (até 3 CNPJs) ---------- */
+function abrirEmpresas() {
+  const es = store.get("gf_empresas_" + usuario.email, []);
+  $("#emp-lista").innerHTML = Array.from({length: MAX_PJ}, (_, i) => {
+    const e = es.find(x => x && x.id === "pj" + (i + 1)) || {};
+    return `<fieldset class="emp" data-id="pj${i + 1}"><legend>Empresa ${i + 1}</legend>
+      <label class="f">Nome<input class="emp-nome" maxlength="60" value="${esc(e.nome || "")}" placeholder="Razão social ou nome fantasia"></label>
+      <label class="f">CNPJ<input class="emp-cnpj" inputmode="numeric" maxlength="18" value="${esc(e.cnpj ? cnpjFmt(e.cnpj) : "")}" placeholder="00.000.000/0000-00"></label></fieldset>`;
+  }).join("");
+  const d = $("#dlg-emp"); d.showModal ? d.showModal() : d.setAttribute("open", "");
+}
+const fecharEmpresas = () => { const d = $("#dlg-emp"); d.close ? d.close() : d.removeAttribute("open"); };
+async function salvarEmpresas() {
+  const antes = store.get("gf_empresas_" + usuario.email, []), novas = [];
+  for (const f of document.querySelectorAll("#emp-lista .emp")) {
+    const nome = f.querySelector(".emp-nome").value.trim(), cnpj = soDig(f.querySelector(".emp-cnpj").value);
+    if (!nome && !cnpj) continue;
+    if (!nome) return toast(`${f.querySelector("legend").textContent}: falta o nome.`);
+    if (!cnpjValido(cnpj)) return toast(`${nome}: CNPJ inválido. Confira os 14 números.`);
+    novas.push({id: f.dataset.id, nome, cnpj});
+  }
+  if (new Set(novas.map(e => e.cnpj)).size < novas.length) return toast("O mesmo CNPJ aparece duas vezes.");
+  const saem = antes.filter(a => a && a.nome && !novas.some(n => n.id === a.id));
+  if (saem.length && !confirm(`Remover ${saem.map(e => e.nome).join(", ")}? Os extratos desta empresa guardados neste aparelho serão apagados.`)) return;
+  for (const e of saem) {
+    const k = escopo(e.id);
+    await idb("readwrite", st => { ["dados:", "snap:", "nuvem:"].forEach(p => st.delete(p + k)); st.delete(k); }).catch(() => {});
+    try { localStorage.removeItem("gf_cfg_" + k); localStorage.removeItem("gf_nuvem_" + k); } catch {}
+  }
+  store.set("gf_empresas_" + usuario.email, novas);
+  fecharEmpresas();
+  if (saem.some(e => e.id === perfilAtual) || (consolidado() && !novas.length)) { perfilAtual = "pf"; store.set("gf_perfil_" + usuario.email, "pf"); await abrirPerfil(); }
+  else if (consolidado()) await montarConsolidado(); else desenharPerfis();
+  toast(novas.length ? `${novas.length} empresa(s) cadastrada(s). Escolha no seletor de perfil.` : "Nenhuma empresa cadastrada.");
+}
+$("#perfil-emp").onclick = abrirEmpresas;
+$("#emp-salvar").onclick = salvarEmpresas;
+$("#emp-fechar").onclick = fecharEmpresas;
+$("#emp-lista").oninput = e => { if (e.target.classList.contains("emp-cnpj")) { const d = soDig(e.target.value).slice(0, 14); e.target.value = d.length === 14 ? cnpjFmt(d) : d; } };
 
 /* ---------- administração ---------- */
 // A tela só aparece para administradores, mas quem garante a permissão é o servidor:
@@ -340,7 +456,7 @@ $("#passos").onchange = $("#passos-movel").onchange = e => { const c = e.target.
 $("#v-guia").onclick = e => { const b = e.target.closest("[data-ir]"); if (b) irPara(b.dataset.ir); };
 
 /* ---------- pasta ---------- */
-function salvarCfg() { if (usuario) store.set("gf_cfg_" + usuario.email, {link: $("#pasta-link").value, nuvem: document.querySelector("input[name=nuvem]:checked").value, zap: $("#zap").value, mail: $("#mail").value}); }
+function salvarCfg() { if (usuario && !consolidado()) store.set("gf_cfg_" + escopo(), {link: $("#pasta-link").value, nuvem: document.querySelector("input[name=nuvem]:checked").value, zap: $("#zap").value, mail: $("#mail").value}); }
 $("#pasta-link").onchange = salvarCfg; $("#cloud").onchange = salvarCfg; $("#zap").onchange = salvarCfg; $("#mail").onchange = salvarCfg;
 
 // A pasta escolhida fica lembrada neste navegador (IndexedDB), por usuário.
@@ -352,8 +468,8 @@ function idb(modo, fn) {
     r.onsuccess = () => { const tx = r.result.transaction("pastas", modo), q = fn(tx.objectStore("pastas")); tx.oncomplete = () => ok(q && q.result); tx.onerror = () => falha(tx.error); };
   });
 }
-const lembrarPasta = h => idb("readwrite", st => st.put(h, usuario.email)).catch(() => {});
-const pastaLembrada = () => idb("readonly", st => st.get(usuario.email)).catch(() => null);
+const lembrarPasta = h => idb("readwrite", st => st.put(h, escopo())).catch(() => {});
+const pastaLembrada = () => idb("readonly", st => st.get(escopo())).catch(() => null);
 async function abrirHandle(h) {
   raiz = h; aplicarLeitura(await carregarDeHandle(h), h.name); $("#reabrir").hidden = true;
 }
@@ -405,6 +521,7 @@ function aplicarLeitura(novos, nome) {
   if (novos.length) toast(`${novos.length} lançamentos lidos de ${Object.keys(pastasMes).length || new Set(arquivosLista.map(a => a.mes)).size} mês(es).`);
 }
 $("#escolher").onclick = async () => {
+  if (consolidado()) return toast("Escolha antes a pessoa física ou a empresa dona da pasta.");
   if (window.showDirectoryPicker) {
     try {
       const h = await window.showDirectoryPicker({mode: "readwrite"});
@@ -424,7 +541,7 @@ $("#exemplo").onclick = () => { lanc = exemplo(); fonte = "exemplo"; raiz = null
 /* ---------- importar arquivos (celular, tablet e computador) ---------- */
 // Sem pasta: o usuário escolhe os arquivos. O mês vem da data de cada lançamento.
 // Os dados ficam só neste aparelho (IndexedDB), por usuário, e voltam no próximo acesso.
-const chaveDados = () => "dados:" + usuario.email;
+const chaveDados = () => "dados:" + escopo();
 const dadosGuardados = () => idb("readonly", st => st.get(chaveDados())).catch(() => null);
 const guardarDados = d => idb("readwrite", st => st.put(d, chaveDados())).catch(() => {});
 const apagarDados = () => idb("readwrite", st => st.delete(chaveDados())).catch(() => {});
@@ -479,12 +596,13 @@ function montarLancamentos(arqs) {
   return {lanc: lancs, arquivos: arquivos.filter(a => a.mes)};
 }
 window.GFApp = {
-  usuario: () => usuario, toast, esc, store, irPara, mesDaPasta, montarLancamentos, mostrarNuvem,
+  usuario: () => usuario, escopo: () => escopo(), consolidado: () => consolidado(), toast, esc, store, irPara, mesDaPasta, montarLancamentos, mostrarNuvem,
   idb: (modo, fn) => idb(modo, fn), atualizarGuia: () => desenharGuia(), movel,
   voltarExemplo: () => $("#exemplo").click(),
 };
 async function importarArquivos(files) {
   if (!files.length) return;
+  if (consolidado()) return toast("Na visão consolidada não dá para importar. Escolha antes a pessoa física ou a empresa dona do extrato.");
   const d = (await dadosGuardados()) || {lanc: [], arquivos: []};
   let novos = 0, repetidos = 0, ignorados = [];
   for (const f of files) {
@@ -512,7 +630,7 @@ $("#importar").onclick = () => $("#imp-input").click();
 $("#imp-input").onchange = async e => { const fs = [...e.target.files]; e.target.value = ""; await importarArquivos(fs); };
 $("#limpar-imp").onclick = async () => {
   if (!confirm("Apagar os extratos importados neste aparelho? Os arquivos originais na nuvem não são apagados.")) return;
-  await apagarDados(); $("#limpar-imp").hidden = true; $("#exemplo").click(); toast("Dados importados apagados deste aparelho.");
+  await apagarDados(); idb("readwrite", st => st.delete(chaveSnap(perfilAtual))).catch(() => {}); $("#limpar-imp").hidden = true; $("#exemplo").click(); toast("Dados importados apagados deste aparelho.");
 };
 // Arquivos recebidos pelo "Compartilhar" do Android ficam guardados pelo service worker até o app abrir.
 async function receberCompartilhados() {
@@ -525,20 +643,39 @@ async function receberCompartilhados() {
 
 /* ---------- painel ---------- */
 const mesesDisp = () => [...new Set(lanc.map(l => l.mes))].sort();
-function resumo(m) {
-  const ls = lanc.filter(l => l.mes === m);
-  const ent = ls.filter(l => l.valor > 0).reduce((s, l) => s + l.valor, 0);
-  const sai = ls.filter(l => l.valor < 0).reduce((s, l) => s + l.valor, 0);
+function resumo(m, perfil) {
+  const ls = lanc.filter(l => l.mes === m && (!perfil || l.perfil === perfil));
+  // No consolidado, o dinheiro que só passou da empresa para a pessoa física (ou o contrário) fica de fora.
+  const conta = perfil ? ls : ls.filter(l => !l.entre);
+  const ent = conta.filter(l => l.valor > 0).reduce((s, l) => s + l.valor, 0);
+  const sai = conta.filter(l => l.valor < 0).reduce((s, l) => s + l.valor, 0);
+  const entre = ls.filter(l => l.entre && l.valor > 0).reduce((s, l) => s + l.valor, 0);
   const cats = {};
-  ls.filter(l => l.valor < 0).forEach(l => { const c = categoria(l.desc, l.valor); cats[c] = (cats[c] || 0) - l.valor; });
-  return {ls, ent, sai, saldo: ent + sai, cats: Object.entries(cats).sort((a, b) => b[1] - a[1])};
+  conta.filter(l => l.valor < 0).forEach(l => { const c = categoria(l.desc, l.valor); cats[c] = (cats[c] || 0) - l.valor; });
+  return {ls, ent, sai, saldo: ent + sai, entre, cats: Object.entries(cats).sort((a, b) => b[1] - a[1])};
 }
+// Tabela por perfil do mês (só na visão consolidada).
+function tabelaPerfis(m) {
+  const linhas = perfis().map(p => ({p, r: resumo(m, p.id)})).filter(x => x.r.ls.length);
+  const t = resumo(m);
+  return `<tr><th>Perfil</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r">Saldo</th></tr>` +
+    linhas.map(({p, r}) => `<tr><td>${p.tipo === "PF" ? "Pessoa física" : esc(p.nome)}</td><td class="r num">${brl(r.ent)}</td><td class="r num">${brl(r.sai)}</td><td class="r num ${r.saldo < 0 ? "neg" : "pos"}">${brl(r.saldo)}</td></tr>`).join("") +
+    (t.entre ? `<tr><td class="muted">Entre você e as empresas (pró-labore, retiradas, aportes)</td><td class="r num muted" colspan="3">${brl(t.entre)} · fora do total</td></tr>` : "") +
+    `<tr class="tot"><td><b>Consolidado</b></td><td class="r num"><b>${brl(t.ent)}</b></td><td class="r num"><b>${brl(t.sai)}</b></td><td class="r num ${t.saldo < 0 ? "neg" : "pos"}"><b>${brl(t.saldo)}</b></td></tr>`;
+}
+const contaTxt = l => (consolidado() && l.perfil ? (l.perfil === "pf" ? "PF" : perfilInfo(l.perfil).nome) + " · " : "") + l.conta;
 function preencherMeses() {
   const ms = mesesDisp(), opts = ms.map(m => `<option value="${m}">${mesNome(m)}</option>`).join("");
   for (const id of ["#mes", "#mes-rel"]) { const s = $(id), v = s.value; s.innerHTML = opts; s.value = ms.includes(v) ? v : ms[ms.length - 1]; }
 }
 function desenharPainel() {
-  const m = $("#mes").value; if (!m) return;
+  const m = $("#mes").value;
+  $("#p-perfis").hidden = !consolidado() || !m;
+  if (!m) {
+    $("#kpis").innerHTML = `<div class="kpi"><div class="l">Sem lançamentos</div><div class="v">—</div></div>`;
+    ["#cats", "#evol", "#lanc"].forEach(id => $(id).innerHTML = ""); $("#tot-lanc").textContent = ""; return;
+  }
+  if (consolidado()) $("#t-perfis").innerHTML = tabelaPerfis(m);
   const r = resumo(m), q = $("#busca").value.trim().toLowerCase();
   $("#kpis").innerHTML = [
     ["Entradas", r.ent, "pos"], ["Saídas", r.sai, "neg"], ["Saldo do mês", r.saldo, r.saldo < 0 ? "neg" : "pos"],
@@ -548,10 +685,10 @@ function desenharPainel() {
   $("#cats").innerHTML = r.cats.map(([c, v]) => `<div class="bar"><span>${esc(c)}</span><div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(1)}%"></div></div><span class="num" style="text-align:right">${brl(v)}</span></div>`).join("") || `<span class="muted">Sem saídas neste mês.</span>`;
   $("#evol").innerHTML = `<tr><th>Mês</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r">Saldo</th></tr>` +
     mesesDisp().map(mm => { const x = resumo(mm); return `<tr><td>${mesNome(mm)}</td><td class="r num">${brl(x.ent)}</td><td class="r num">${brl(x.sai)}</td><td class="r num ${x.saldo < 0 ? "neg" : "pos"}">${brl(x.saldo)}</td></tr>`; }).join("");
-  const ls = r.ls.filter(l => !q || (l.desc + " " + categoria(l.desc, l.valor) + " " + l.conta).toLowerCase().includes(q)).sort((a, b) => a.data.localeCompare(b.data));
+  const ls = r.ls.filter(l => !q || (l.desc + " " + categoria(l.desc, l.valor) + " " + contaTxt(l)).toLowerCase().includes(q)).sort((a, b) => a.data.localeCompare(b.data));
   $("#tot-lanc").textContent = `${ls.length} lançamentos`;
   $("#lanc").innerHTML = `<tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th class="r">Valor</th></tr>` +
-    ls.map(l => `<tr><td class="num">${l.data.split("-").reverse().join("/")}</td><td>${esc(l.desc)}</td><td><span class="tag${l.valor > 0 ? "" : " warn"}">${categoria(l.desc, l.valor)}</span></td><td>${esc(l.conta)}</td><td class="r num ${l.valor < 0 ? "neg" : "pos"}">${brl(l.valor)}</td></tr>`).join("");
+    ls.map(l => `<tr><td class="num">${l.data.split("-").reverse().join("/")}</td><td>${esc(l.desc)}</td><td><span class="tag${l.valor > 0 ? "" : " warn"}">${categoria(l.desc, l.valor)}</span>${l.entre ? ` <span class="tag">Entre perfis</span>` : ""}</td><td>${esc(contaTxt(l))}</td><td class="r num ${l.valor < 0 ? "neg" : "pos"}">${brl(l.valor)}</td></tr>`).join("");
 }
 
 /* ---------- arquivos ---------- */
@@ -563,13 +700,15 @@ function desenharArquivos() {
 
 /* ---------- relatório ---------- */
 function desenharRelatorio() {
-  const m = $("#mes-rel").value; if (!m) return;
+  const m = $("#mes-rel").value; if (!m) { $("#rel").innerHTML = `<p class="muted">Sem lançamentos para o relatório.</p>`; return; }
+  const pi = perfilInfo(perfilAtual), titulo = pi.tipo === "PJ" ? `${esc(pi.nome)} <small style="font-weight:400;font-size:13px">CNPJ ${cnpjFmt(pi.cnpj)}</small>` : pi.tipo === "todos" ? `${esc(usuario.nome)} · consolidado PF + empresas` : esc(usuario.nome);
   const r = resumo(m), max = r.cats[0] ? r.cats[0][1] : 1, hoje = new Date().toLocaleDateString("pt-BR");
   const top = r.ls.filter(l => l.valor < 0).sort((a, b) => a.valor - b.valor).slice(0, 8);
   $("#rel").innerHTML = `
-    <div class="rh"><div style="display:flex;gap:12px;align-items:center"><img src="icons/thz-selo.png" alt="THZ" style="width:44px;height:44px;border-radius:50%"><div><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#006747;font-weight:600">Relatório mensal</div><h2>${esc(usuario.nome)} · ${mesNome(m)}</h2></div></div>
-      <div style="text-align:right;font-size:12px;color:#56665e">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : fonte === "nuvem" ? $("#pasta-nome").textContent.split(" · ").slice(0, 2).join(" · ") : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
+    <div class="rh"><div style="display:flex;gap:12px;align-items:center"><img src="icons/thz-selo.png" alt="THZ" style="width:44px;height:44px;border-radius:50%"><div><div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#006747;font-weight:600">Relatório mensal</div><h2>${titulo} · ${mesNome(m)}</h2></div></div>
+      <div style="text-align:right;font-size:12px;color:#56665e">Gerado em ${hoje}<br>${fonte !== "exemplo" ? "Fonte: " + esc(fonte === "importado" ? "extratos importados" : fonte === "nuvem" ? $("#pasta-nome").textContent.split(" · ").slice(0, 2).join(" · ") : fonte === "consolidado" ? "extratos de todos os perfis" : $("#pasta-nome").textContent) : "Dados de exemplo"}</div></div>
     <div class="rk"><div><span>Entradas</span><b class="pos">${brl(r.ent)}</b></div><div><span>Saídas</span><b class="neg">${brl(r.sai)}</b></div><div><span>Saldo do mês</span><b class="${r.saldo < 0 ? "neg" : "pos"}">${brl(r.saldo)}</b></div></div>
+    ${consolidado() ? `<h3 style="margin:0 0 10px;color:#0d1210">Por perfil</h3><table style="margin-bottom:16px">${tabelaPerfis(m)}</table>` : ""}
     <h3 style="margin:0 0 10px;color:#0d1210">Saídas por categoria</h3>
     ${r.cats.map(([c, v]) => `<div class="rb"><span>${esc(c)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><span class="num" style="text-align:right">${brl(v)}</span></div>`).join("")}
     <h3 style="margin:18px 0 6px;color:#0d1210">Maiores saídas</h3>
@@ -578,7 +717,7 @@ function desenharRelatorio() {
   $("#rel-dest").textContent = raiz && pastasMes[m] ? `Destino: ${raiz.name} / ${pastasMes[m].name} (a mesma pasta dos extratos do mês).` : raiz ? `Destino: ${raiz.name} (este mês não tem subpasta própria).` : movel() ? "No celular ou tablet, o arquivo abre a opção de salvar no Drive, em Arquivos ou de enviar direto." : "Destino: sem pasta com gravação liberada, o arquivo é baixado.";
   requestAnimationFrame(encaixarRelatorio);
 }
-const nomeArq = ext => `Relatorio_${$("#mes-rel").value}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+const nomeArq = ext => `Relatorio_${perfilAtual === "pf" ? "" : (consolidado() ? "Consolidado" : perfilInfo(perfilAtual).nome.normalize("NFD").replace(/[^A-Za-z0-9]+/g, "")) + "_"}${$("#mes-rel").value}_${new Date().toISOString().slice(0, 10)}.${ext}`;
 async function gerarCanvas() {
   const rel = $("#rel"), t = rel.style.transform; rel.style.transform = "";
   try { return await html2canvas(rel, {scale: 2, backgroundColor: "#ffffff"}); } finally { rel.style.transform = t; }
@@ -621,7 +760,8 @@ $("#b-pdf").onclick = () => salvar("pdf");
 $("#b-png").onclick = () => salvar("png");
 function textoResumo() {
   const m = $("#mes-rel").value, r = resumo(m);
-  return `Relatório ${mesNome(m)} · ${usuario.nome}\nEntradas: ${brl(r.ent)}\nSaídas: ${brl(r.sai)}\nSaldo: ${brl(r.saldo)}\nMaior gasto: ${r.cats[0] ? r.cats[0][0] + " " + brl(r.cats[0][1]) : "—"}`;
+  const pi = perfilInfo(perfilAtual);
+  return `Relatório ${mesNome(m)} · ${pi.tipo === "PJ" ? pi.nome : pi.tipo === "todos" ? usuario.nome + " (consolidado)" : usuario.nome}\nEntradas: ${brl(r.ent)}\nSaídas: ${brl(r.sai)}\nSaldo: ${brl(r.saldo)}\nMaior gasto: ${r.cats[0] ? r.cats[0][0] + " " + brl(r.cats[0][1]) : "—"}`;
 }
 async function compartilhar(canal) {
   // 1) Celular: abre a folha de compartilhar com o PDF anexado (WhatsApp, Gmail etc.)
@@ -645,8 +785,8 @@ $("#b-mail").onclick = () => compartilhar("mail");
 
 /* ---------- geral ---------- */
 function atualizarTudo() {
-  preencherMeses(); desenharPainel(); desenharArquivos(); desenharRelatorio();
-  $("#fonte-txt").textContent = fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : fonte === "importado" ? "Extratos importados neste aparelho" : fonte === "nuvem" ? "Sincronizado: " + $("#pasta-nome").textContent : "Dados de exemplo (fictícios)";
+  preencherMeses(); desenharPainel(); desenharArquivos(); desenharRelatorio(); guardarSnap();
+  $("#fonte-txt").textContent = fonte === "consolidado" ? "Consolidado: pessoa física e empresas" : fonte === "pasta" ? "Lido de: " + $("#pasta-nome").textContent : fonte === "importado" ? "Extratos importados neste aparelho" : fonte === "nuvem" ? "Sincronizado: " + $("#pasta-nome").textContent : "Dados de exemplo (fictícios)";
   desenharGuia();
 }
 $("#mes").onchange = desenharPainel; $("#busca").oninput = desenharPainel; $("#mes-rel").onchange = desenharRelatorio;
