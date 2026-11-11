@@ -1,6 +1,6 @@
 // Deixa o app abrir rápido e instalável. Os dados financeiros nunca passam por aqui.
-const CACHE = "gerencial-v6";
-const ARQS = ["./", "index.html", "styles.css", "app.js", "nuvem.js", "config.js", "manifest.webmanifest", "icons/icon.svg", "icons/thz-selo.png",
+const CACHE = "gerencial-v8";
+const ARQS = ["./", "index.html", "styles.css", "app.js", "nuvem.js", "leitor-pdf.js", "config.js", "manifest.webmanifest", "icons/icon.svg", "icons/thz-selo.png",
   "vendor/supabase.min.js", "icons/icon-192.png", "icons/icon-512.png", "vendor/html2canvas.min.js", "vendor/jspdf.umd.min.js"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARQS)).then(() => self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));

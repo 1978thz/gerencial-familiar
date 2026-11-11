@@ -23,10 +23,10 @@ const PROV = {
 };
 
 /* ---------- guarda da conexão (por usuário, só neste aparelho) ---------- */
-const chave = () => "gf_nuvem_" + (APP().usuario() || {}).email;
+const chave = () => "gf_nuvem_" + APP().escopo();
 const ler = () => { try { return JSON.parse(localStorage.getItem(chave())) || null; } catch { return null; } };
 const gravar = c => { try { c ? localStorage.setItem(chave(), JSON.stringify(c)) : localStorage.removeItem(chave()); } catch {} };
-const chaveDados = () => "nuvem:" + (APP().usuario() || {}).email;
+const chaveDados = () => "nuvem:" + APP().escopo();
 const dadosNuvem = () => APP().idb("readonly", st => st.get(chaveDados())).catch(() => null);
 const guardarNuvem = d => APP().idb("readwrite", st => st.put(d, chaveDados())).catch(() => {});
 const apagarNuvem = () => APP().idb("readwrite", st => st.delete(chaveDados())).catch(() => {});
@@ -137,7 +137,7 @@ const API = {
       } while (page);
       return out;
     },
-    async texto(t, item) { return (await pedir(`https://www.googleapis.com/drive/v3/files/${item.id}?alt=media&supportsAllDrives=true`, t)).text(); },
+    baixar(t, item) { return pedir(`https://www.googleapis.com/drive/v3/files/${item.id}?alt=media&supportsAllDrives=true`, t); },
   },
   onedrive: {
     async conta(t) { const j = await (await pedir("https://graph.microsoft.com/v1.0/me?$select=userPrincipalName,mail", t)).json(); return j.mail || j.userPrincipalName; },
@@ -150,9 +150,9 @@ const API = {
       }
       return out;
     },
-    async texto(t, item) {
-      if (item.baixar) { const r = await fetch(item.baixar); if (r.ok) return r.text(); }
-      return (await pedir(`https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/content`, t)).text();
+    async baixar(t, item) {
+      if (item.baixar) { const r = await fetch(item.baixar); if (r.ok) return r; }
+      return pedir(`https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/content`, t);
     },
   },
   dropbox: {
@@ -167,7 +167,7 @@ const API = {
       }
       return out.sort((a, b) => (b.pasta - a.pasta) || a.nome.localeCompare(b.nome));
     },
-    async texto(t, item) { return (await pedir("https://content.dropboxapi.com/2/files/download", t, {method: "POST", headers: {"Dropbox-API-Arg": jsonAscii({path: item.id})}})).text(); },
+    baixar(t, item) { return pedir("https://content.dropboxapi.com/2/files/download", t, {method: "POST", headers: {"Dropbox-API-Arg": jsonAscii({path: item.id})}}); },
   },
 };
 async function comToken(fn) {
@@ -182,7 +182,14 @@ async function comToken(fn) {
 }
 
 /* ---------- sincronização ---------- */
-const LEGIVEL = /\.(ofx|csv|txt)$/i;
+const LEGIVEL = /\.(ofx|csv|txt|pdf)$/i;
+// PDF vira texto aqui mesmo no aparelho (leitor-pdf.js); OFX e CSV já são texto.
+async function conteudo(api, t, f) {
+  const r = await api.baixar(t, f);
+  if (!/\.pdf$/i.test(f.nome)) return r.text();
+  if (!window.GFPdf || /^relatorio_/i.test(f.nome)) return null;
+  try { return await window.GFPdf.texto(await r.arrayBuffer()); } catch { return null; }
+}
 let sincronizando = false;
 async function sincronizar(silencioso = false) {
   const c = ler(); if (!c || !c.pasta || sincronizando) return;
@@ -201,7 +208,7 @@ async function sincronizar(silencioso = false) {
         lista.push(...itens.filter(f => !f.pasta).map(f => ({...f, mes: null})));
       }
       const out = [];
-      for (const f of lista) out.push({nome: f.nome, mes: f.mes, texto: LEGIVEL.test(f.nome) ? await api.texto(c.token, f) : null});
+      for (const f of lista) out.push({nome: f.nome, mes: f.mes, texto: LEGIVEL.test(f.nome) ? await conteudo(api, c.token, f) : null});
       return out;
     });
     const m = APP().montarLancamentos(arqs);
@@ -211,7 +218,7 @@ async function sincronizar(silencioso = false) {
     if (d.lanc.length) APP().mostrarNuvem(d);
     if (!silencioso || !d.lanc.length) APP().toast(d.lanc.length
       ? `${d.lanc.length} lançamentos lidos de ${PROV[c.prov].nome} / ${c.pasta.nome}.`
-      : `Nenhum extrato OFX ou CSV em ${c.pasta.nome}. Confira se escolheu a pasta principal, com as subpastas de mês.`);
+      : `Nenhum extrato OFX, CSV ou PDF legível em ${c.pasta.nome}. Confira se escolheu a pasta principal, com as subpastas de mês.`);
   } catch (e) {
     if (e.expirou) { const a = ler(); if (a) { a.exp = 0; gravar(a); } if (!silencioso) APP().toast(`Toque em "Atualizar" para entrar de novo no ${PROV[c.prov].nome}.`); }
     else APP().toast("Não consegui ler a nuvem: " + e.message);
