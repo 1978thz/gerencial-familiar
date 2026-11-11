@@ -373,9 +373,8 @@ async function carregarDeHandle(dir) {
     for await (const [fn, fh] of h.entries()) {
       if (fh.kind !== "file") continue;
       const ext = fn.split(".").pop().toLowerCase(); let n = 0;
-      if (["ofx", "csv", "txt"].includes(ext)) {
-        const txt = await (await fh.getFile()).text();
-        const l = /<STMTTRN>/i.test(txt) ? lerOFX(txt, mes, fn) : lerCSV(txt, mes, fn);
+      if (["ofx", "csv", "txt", "pdf"].includes(ext) && !relatorioTHZ(fn)) {
+        const l = await lerArquivo(await fh.getFile(), mes);
         n = l.length; novos.push(...l);
       }
       arquivosLista.push({mes, nome: fn, n, ext});
@@ -389,8 +388,8 @@ async function carregarDeInput(files) {
     const partes = f.webkitRelativePath.split("/"); if (partes.length < 3) continue;
     const mes = mesDaPasta(partes[1]); if (!mes) continue;
     const ext = f.name.split(".").pop().toLowerCase(); let n = 0;
-    if (["ofx", "csv", "txt"].includes(ext)) {
-      const txt = await f.text(); const l = /<STMTTRN>/i.test(txt) ? lerOFX(txt, mes, f.name) : lerCSV(txt, mes, f.name);
+    if (["ofx", "csv", "txt", "pdf"].includes(ext) && !relatorioTHZ(f.name)) {
+      const l = await lerArquivo(f, mes);
       n = l.length; novos.push(...l);
     }
     arquivosLista.push({mes, nome: f.name, n, ext});
@@ -431,8 +430,19 @@ const guardarDados = d => idb("readwrite", st => st.put(d, chaveDados())).catch(
 const apagarDados = () => idb("readwrite", st => st.delete(chaveDados())).catch(() => {});
 const chaveLanc = l => [l.data, l.valor, l.desc.toLowerCase(), l.conta].join("|");
 function lerArquivoTexto(txt, nome) {
-  const ls = /<STMTTRN>/i.test(txt) ? lerOFX(txt, null, nome) : lerCSV(txt, null, nome);
+  const ls = window.GFPdf && txt.startsWith(window.GFPdf.marca) ? window.GFPdf.ler(txt, nome).map(l => ({...l, arquivo: nome}))
+    : /<STMTTRN>/i.test(txt) ? lerOFX(txt, null, nome) : lerCSV(txt, null, nome);
   return ls.filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l.data)).map(l => ({...l, mes: l.data.slice(0, 7)}));
+}
+// Relatórios que o próprio sistema grava na pasta do mês não são extratos.
+const relatorioTHZ = nome => /^relatorio_/i.test(nome);
+// Lê um arquivo (OFX, CSV ou PDF). Na pasta de mês, o mês da pasta vale para os extratos de conta;
+// a fatura de cartão em PDF entra no mês do vencimento.
+async function lerArquivo(f, mesPasta) {
+  const pdf = /\.pdf$/i.test(f.name);
+  if (pdf && !window.GFPdf) return [];
+  const txt = pdf ? await window.GFPdf.texto(await f.arrayBuffer()) : await f.text();
+  return lerArquivoTexto(txt, f.name).map(l => ({...l, mes: mesPasta && !pdf ? mesPasta : l.mes}));
 }
 function mostrarImportados(d) {
   lanc = d.lanc; fonte = "importado"; raiz = null; pastasMes = {};
@@ -454,10 +464,9 @@ function montarLancamentos(arqs) {
   for (const a of arqs) {
     const ext = (a.nome.split(".").pop() || "").toLowerCase();
     let ls = [];
-    if (["ofx", "csv", "txt"].includes(ext) && a.texto != null) {
+    if (["ofx", "csv", "txt", "pdf"].includes(ext) && a.texto != null && !relatorioTHZ(a.nome)) {
       try {
-        ls = /<STMTTRN>/i.test(a.texto) ? lerOFX(a.texto, a.mes, a.nome) : lerCSV(a.texto, a.mes, a.nome);
-        ls = ls.filter(l => /^\d{4}-\d{2}-\d{2}$/.test(l.data)).map(l => ({...l, mes: a.mes || l.data.slice(0, 7)}));
+        ls = lerArquivoTexto(a.texto, a.nome).map(l => ({...l, mes: a.mes && ext !== "pdf" ? a.mes : l.mes}));
       } catch { ls = []; }
     }
     const daqui = new Set(), entram = [];
@@ -481,7 +490,7 @@ async function importarArquivos(files) {
   for (const f of files) {
     const ext = (f.name.split(".").pop() || "").toLowerCase();
     let ls = [];
-    try { ls = lerArquivoTexto(await f.text(), f.name); } catch {}
+    try { ls = await lerArquivo(f, null); } catch {}
     if (!ls.length) { ignorados.push(f.name); continue; }
     // Reimportar o mesmo arquivo substitui a versão anterior dele.
     d.lanc = d.lanc.filter(l => l.arquivo !== f.name); d.arquivos = d.arquivos.filter(a => a.nome !== f.name);
@@ -494,7 +503,7 @@ async function importarArquivos(files) {
     const mes = Object.entries(cont).sort((a, b) => b[1] - a[1])[0];
     d.arquivos.push({nome: f.name, n: entram.length, ext, mes: mes ? mes[0] : ls[0].mes, em: new Date().toISOString()});
   }
-  if (!novos && !repetidos) return toast(`Não encontrei lançamentos em ${ignorados.join(", ")}. Use extratos em OFX ou CSV.`);
+  if (!novos && !repetidos) return toast(`Não encontrei lançamentos em ${ignorados.join(", ")}. Use extratos em OFX, CSV ou PDF do banco (PDF escaneado ou foto não tem texto para ler).`);
   await guardarDados(d); mostrarImportados(d);
   toast(`${novos} lançamento(s) importado(s)` + (repetidos ? `, ${repetidos} repetido(s) ignorado(s)` : "") + (ignorados.length ? `. Não li: ${ignorados.join(", ")}` : "."));
   irPara("painel");
@@ -549,7 +558,7 @@ function desenharPainel() {
 function desenharArquivos() {
   if (fonte === "exemplo" && !arquivosLista.length) return;
   $("#arquivos").innerHTML = arquivosLista.sort((a, b) => (a.mes + a.nome).localeCompare(b.mes + b.nome)).map(a =>
-    `<li><span><b>${mesNome(a.mes)}</b> · ${esc(a.nome)}</span><span class="muted">${a.n ? a.n + " lançamentos" : ["pdf","jpg","jpeg","png"].includes(a.ext) ? "PDF/imagem: leitura na versão comercial" : "ignorado"}</span></li>`).join("") || `<li><span class="muted">Nenhuma subpasta com nome de mês encontrada.</span></li>`;
+    `<li><span><b>${mesNome(a.mes)}</b> · ${esc(a.nome)}</span><span class="muted">${a.n ? a.n + " lançamentos" : relatorioTHZ(a.nome) ? "relatório do sistema" : a.ext === "pdf" ? "PDF sem lançamentos reconhecidos (escaneado?)" : ["jpg","jpeg","png"].includes(a.ext) ? "foto: não é lida" : "ignorado"}</span></li>`).join("") || `<li><span class="muted">Nenhuma subpasta com nome de mês encontrada.</span></li>`;
 }
 
 /* ---------- relatório ---------- */

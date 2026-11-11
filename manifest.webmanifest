@@ -53,6 +53,8 @@
             "text/comma-separated-values",
             "application/vnd.ms-excel",
             "application/octet-stream",
+            "application/pdf",
+            ".pdf",
             ".ofx",
             ".csv",
             ".txt"
