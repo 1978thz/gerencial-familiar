@@ -23,10 +23,10 @@ const PROV = {
 };
 
 /* ---------- guarda da conexão (por usuário, só neste aparelho) ---------- */
-const chave = () => "gf_nuvem_" + (APP().usuario() || {}).email;
+const chave = () => "gf_nuvem_" + APP().escopo();
 const ler = () => { try { return JSON.parse(localStorage.getItem(chave())) || null; } catch { return null; } };
 const gravar = c => { try { c ? localStorage.setItem(chave(), JSON.stringify(c)) : localStorage.removeItem(chave()); } catch {} };
-const chaveDados = () => "nuvem:" + (APP().usuario() || {}).email;
+const chaveDados = () => "nuvem:" + APP().escopo();
 const dadosNuvem = () => APP().idb("readonly", st => st.get(chaveDados())).catch(() => null);
 const guardarNuvem = d => APP().idb("readwrite", st => st.put(d, chaveDados())).catch(() => {});
 const apagarNuvem = () => APP().idb("readwrite", st => st.delete(chaveDados())).catch(() => {});

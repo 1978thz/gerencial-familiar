@@ -66,6 +66,11 @@
       <div class="brand"><img class="brand-mark" src="icons/thz-selo.png" alt="THZ"><div><h1 id="fam">Família</h1><div class="muted small" id="fonte-txt">Dados de exemplo</div></div></div>
       <div class="top-acoes"><button id="instalar" hidden>Instalar app</button><button id="sair">Sair</button></div>
     </div>
+    <div class="perfil-bar">
+      <label class="perfil-sel"><span class="small muted">Perfil</span><select id="perfil" aria-label="Perfil"></select></label>
+      <span class="small muted" id="perfil-sub"></span>
+      <button class="auto" id="perfil-emp">Minhas empresas</button>
+    </div>
     <nav class="tabs" id="tabs">
       <button data-v="guia"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 13.5v.01M12 13.5c0-2 2.5-2 2.5-4a2.5 2.5 0 0 0-5 0"/></svg><span>Como usar</span></button>
       <button data-v="painel" class="on"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10m6 10V4m6 16v-7m4 7H3"/></svg><span>Painel</span></button>
@@ -74,6 +79,12 @@
       <button data-v="admin" id="tab-admin" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6Zm-3 9 2 2 4-4"/></svg><span>Admin</span></button>
     </nav>
   </div></header>
+      <dialog id="dlg-emp">
+        <div class="nv-dlg-topo"><h3>Minhas empresas</h3><button class="link" id="emp-fechar">Fechar</button></div>
+        <p class="muted small" style="margin:0 0 10px">Cadastre até 3 empresas (CNPJ). Cada uma tem extratos, pasta e relatório próprios, e todas aparecem juntas com a pessoa física em <b>Consolidado</b>. Para remover uma empresa, apague o nome e o CNPJ.</p>
+        <div id="emp-lista"></div>
+        <button class="pri" id="emp-salvar">Salvar empresas</button>
+      </dialog>
 
   <main class="wrap">
     <!-- COMO USAR -->
@@ -221,6 +232,8 @@
         <label class="f">Buscar lançamento<input id="busca" type="search" placeholder="mercado, escola, Pix..."></label>
       </div>
       <div class="kpis" id="kpis"></div>
+      <div class="panel" id="p-perfis" hidden><h3>Por perfil</h3><div class="tbl"><table id="t-perfis"></table></div>
+        <p class="muted small" style="margin:8px 0 0">Valores iguais que saem de um perfil e entram no outro em até 3 dias (pró-labore, retiradas, aportes) aparecem como "Entre perfis" e ficam fora do total, para não contar o mesmo dinheiro duas vezes.</p></div>
       <div class="grid2">
         <div class="panel"><h3>Saídas por categoria</h3><div class="bars" id="cats"></div></div>
         <div class="panel"><h3>Mês a mês</h3><div class="tbl"><table id="evol"></table></div></div>
@@ -230,6 +243,8 @@
 
     <!-- PASTA -->
     <section class="view" id="v-pasta">
+      <div class="note so-todos">Na visão consolidada, o sistema junta o que já foi lido em cada perfil. Para importar ou conectar extratos, escolha no topo a <b>Pessoa física</b> ou a <b>empresa</b> dona da conta.</div>
+      <div class="note nao-todos small" id="perfil-aviso"></div>
       <div class="panel" id="nv-panel">
         <h2>Conectar minha nuvem</h2>
         <div id="nv-escolha">
