@@ -1,0 +1,41 @@
+# Mantém o projeto Supabase do Gerencial Familiar ativo no plano grátis.
+# O Supabase pausa projetos grátis após 7 dias sem uso; esta rotina faz uma
+# consulta leve a cada 3 dias. Custo zero (repositório público).
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 11 */3 * *"   # 08h17 de Brasília, a cada 3 dias
+  workflow_dispatch: {}
+
+permissions:
+  actions: write   # para reativar este próprio agendamento (o GitHub desliga após 60 dias sem commits)
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Consulta leve no banco
+        env:
+          # Mesma chave publicável e pública do config.js; o acesso é controlado pelo RLS.
+          SB_URL: https://ryauwysskrqovsvgldet.supabase.co
+          SB_KEY: sb_publishable_MLE-5j5ozrJ1c2ksk2W5Vg_5pfYvHaq
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/r.txt -w '%{http_code}' \
+              -H "apikey: $SB_KEY" \
+              "$SB_URL/rest/v1/assinaturas?select=user_id&limit=1")
+            echo "Tentativa $i: HTTP $code"
+            if [ "$code" = "200" ]; then cat /tmp/r.txt; echo; exit 0; fi
+            sleep 20
+          done
+          echo "::error::Supabase não respondeu (projeto pausado?). Retomar em https://supabase.com/dashboard/project/ryauwysskrqovsvgldet"
+          exit 1
+
+      - name: Manter o agendamento ligado
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable" || true
